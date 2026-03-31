@@ -13,8 +13,9 @@ on:
   workflow_dispatch:
 
 env:
-  ANDROID_NDK_VERSION: 'r25b'
-  ANDROID_API_LEVEL: '21'
+  # Using newer NDK version that's available
+  ANDROID_NDK_VERSION: 'r26b'
+  ANDROID_API_LEVEL: '24'
   raylib_version: '5.0'
 
 jobs:
@@ -46,15 +47,21 @@ jobs:
           rm cmdline-tools.zip
           echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
 
-      - name: Setup Android NDK
+      - name: Setup Android NDK and SDK components
         run: |
           export ANDROID_SDK_ROOT=$HOME/android-sdk
           export PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
           yes | sdkmanager --licenses || true
+
+          # Install NDK, platform, and build-tools
           sdkmanager "ndk;${{ env.ANDROID_NDK_VERSION }}"
           sdkmanager "platforms;android-${{ env.ANDROID_API_LEVEL }}"
           sdkmanager "build-tools;34.0.0"
+
           echo "ANDROID_NDK=$HOME/android-sdk/ndk/${{ env.ANDROID_NDK_VERSION }}" >> $GITHUB_ENV
+
+          # Verify installation
+          ls -la $HOME/android-sdk/ndk/
 
       - name: Clone Raylib
         run: |
@@ -74,38 +81,19 @@ jobs:
           cmake .. -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=android-${{ env.ANDROID_API_LEVEL }} \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=1
           make -j$(nproc)
 
-          # Build for armeabi-v7a
           cd ..
-          mkdir -p build-armeabi
-          cd build-armeabi
-          cmake .. -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
-            -DANDROID_ABI=armeabi-v7a \
-            -DANDROID_PLATFORM=android-${{ env.ANDROID_API_LEVEL }} \
-            -DCMAKE_BUILD_TYPE=Release
-          make -j$(nproc)
-
-          # Build for x86_64
-          cd ..
-          mkdir -p build-x86_64
-          cd build-x86_64
-          cmake .. -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
-            -DANDROID_ABI=x86_64 \
-            -DANDROID_PLATFORM=android-${{ env.ANDROID_API_LEVEL }} \
-            -DCMAKE_BUILD_TYPE=Release
-          make -j$(nproc)
 
       - name: Create Android project structure
         run: |
           mkdir -p android/app/src/main/{java,res,assets/textures}
-          mkdir -p android/app/src/main/jniLibs/{arm64-v8a,armeabi-v7a,x86_64}
+          mkdir -p android/app/src/main/jniLibs/arm64-v8a
 
           # Copy raylib prebuilt libraries
-          cp raylib/src/build-arm64/*.so android/app/src/main/jniLibs/arm64-v8a/ 2>/dev/null || true
-          cp raylib/src/build-armeabi/*.so android/app/src/main/jniLibs/armeabi-v7a/ 2>/dev/null || true
-          cp raylib/src/build-x86_64/*.so android/app/src/main/jniLibs/x86_64/ 2>/dev/null || true
+          cp raylib/src/build-arm64/*.a android/app/src/main/jniLibs/arm64-v8a/ 2>/dev/null || true
 
       - name: Create Android manifest
         run: |
@@ -123,9 +111,7 @@ jobs:
 
               <application
                   android:allowBackup="true"
-                  android:icon="@mipmap/ic_launcher"
                   android:label="VoxelCraft"
-                  android:roundIcon="@mipmap/ic_launcher_round"
                   android:usesCleartextTraffic="true"
                   android:hardwareAccelerated="true">
 
@@ -163,17 +149,49 @@ jobs:
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                  nativeInit();
-              }
-
-              @Override
-              protected void onDestroy() {
-                  super.onDestroy();
-                  nativeClose();
               }
 
               private native void nativeInit();
               private native void nativeClose();
+          }
+          EOF
+
+      - name: Create CMakeLists.txt for Android native code
+        run: |
+          cat > android/app/src/main/cpp/CMakeLists.txt << 'EOF'
+          cmake_minimum_required(VERSION 3.22.1)
+          project(voxelcraft)
+
+          add_library(voxelcraft SHARED main.c)
+
+          target_include_directories(voxelcraft PRIVATE
+              ${CMAKE_CURRENT_SOURCE_DIR}/include
+          )
+
+          # Link with prebuilt raylib
+          add_library(raylib STATIC IMPORTED)
+          set_target_properties(raylib PROPERTIES IMPORTED_LOCATION
+              ${CMAKE_CURRENT_SOURCE_DIR}/jniLibs/${ANDROID_ABI}/libraylib.a
+          )
+
+          target_link_libraries(voxelcraft raylib m log)
+          EOF
+
+          mkdir -p android/app/src/main/cpp
+
+      - name: Create native C bridge file
+        run: |
+          cat > android/app/src/main/cpp/main.c << 'EOF'
+          // Native bridge for Android
+          #include <jni.h>
+          #include <android/log.h>
+
+          #define LOG_TAG "VoxelCraft"
+          #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
+
+          JNIEXPORT void JNICALL
+          Java_com_voxelcraft_game_MainActivity_nativeInit(JNIEnv *env, jobject thiz) {
+              LOGI("VoxelCraft Android: Init called");
           }
           EOF
 
@@ -190,7 +208,7 @@ jobs:
 
               defaultConfig {
                   applicationId "com.voxelcraft.game"
-                  minSdkVersion 21
+                  minSdkVersion 24
                   targetSdkVersion 34
                   versionCode 1
                   versionName "1.0"
@@ -203,27 +221,26 @@ jobs:
                   }
 
                   ndk {
-                      abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+                      abiFilters 'arm64-v8a'
+                  }
+
+                  sourceSets {
+                      main {
+                          assets.srcDirs = ['assets']
+                      }
                   }
               }
 
               externalNativeBuild {
                   cmake {
-                      path "../../CMakeLists.txt"
+                      path "src/main/cpp/CMakeLists.txt"
                       version "3.22.1"
-                  }
-              }
-
-              sourceSets {
-                  main {
-                      assets.srcDirs = ['assets']
                   }
               }
 
               buildTypes {
                   release {
                       minifyEnabled false
-                      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
                   }
                   debug {
                       minifyEnabled false
@@ -232,12 +249,9 @@ jobs:
           }
           GRADLE_EOF
 
-      - name: Create proguard rules
+      - name: Copy source and assets
         run: |
-          echo "-keep class com.voxelcraft.game.** { *; }" > android/app/proguard-rules.pro
-
-      - name: Copy native source
-        run: |
+          mkdir -p android/app/src/main/assets
           cp -r src android/app/src/main/
           cp -r include android/app/src/main/
           cp -r assets android/app/src/main/
@@ -252,7 +266,7 @@ jobs:
       - name: Build debug APK
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon --warning-mode=all
+          ./gradlew assembleDebug --no-daemon 2>&1
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4

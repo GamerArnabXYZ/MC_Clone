@@ -13,7 +13,6 @@ on:
   workflow_dispatch:
 
 env:
-  emsdk_version: '3.1.31'
   raylib_version: '5.0'
 
 jobs:
@@ -28,43 +27,107 @@ jobs:
 
       - name: Setup Emscripten
         run: |
-          emsdk activate ${{ env.emsdk_version }}
+          emsdk activate
           . $EMSDK_ENV
+          emcc --version
 
-      - name: Install Raylib (Web)
+      - name: Install dependencies
         run: |
-          git clone https://github.com/raysan5/raylib.git
-          cd raylib
-          git checkout ${{ env.raylib_version }}
-          cd src
+          apt-get update && apt-get install -y libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl-dev
+
+      - name: Clone and Build Raylib for Web
+        run: |
+          . $EMSDK_ENV
+          git clone --depth 1 --branch ${{ env.raylib_version }} https://github.com/raysan5/raylib.git
+          cd raylib/src
+
+          # Build for Web using emmake
           emmake make RAYLIB_LIBTYPE=SHARED RAYLIB_USE_WEBGL=YES
+
+          cd ../..
+          ls -la raylib/src/*.a raylib/src/*.so 2>/dev/null || ls -la raylib/src/
 
       - name: Setup build directory
         run: |
           mkdir -p build-web
           cp -r assets build-web/
 
-      - name: Build with Emscripten
+      - name: Create HTML shell for Emscripten
+        run: |
+          cat > build-web/shell.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+              <title>VoxelCraft</title>
+              <style>
+                  body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+                  canvas { display: block; width: 100vw; height: 100vh; }
+                  #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-family: Arial; }
+              </style>
+          </head>
+          <body>
+              <div id="loading">Loading VoxelCraft...</div>
+              <canvas id="canvas"></canvas>
+              <script>
+                  var Module = {
+                      canvas: (function() { return document.getElementById('canvas'); })(),
+                      setStatus: function(text) {
+                          if (text) console.log(text);
+                          var loading = document.getElementById('loading');
+                          if (loading) loading.style.display = 'none';
+                      },
+                      onRuntimeInitialized: function() {
+                          document.getElementById('loading').style.display = 'none';
+                      }
+                  };
+              </script>
+              <script src="voxelcraft.js"></script>
+          </body>
+          </html>
+          EOF
+
+      - name: Build VoxelCraft with Emscripten
         run: |
           . $EMSDK_ENV
-          emcc -o build-web/index.html \
+
+          cd build-web
+
+          # Compile with proper Emscripten flags
+          emcc ../src/*.c \
+            -o voxelcraft.js \
             -s WASM=1 \
             -s USE_WEBGL=1 \
             -s ALLOW_MEMORY_GROWTH=1 \
             -s MAXIMUM_MEMORY=268435456 \
             -s ASYNCIFY=1 \
-            -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap']" \
-            -s EXPORTED_FUNCTIONS="['_main','_InitGame','_UpdateGame','_DrawGame','_CloseGame']" \
-            -s MODULARIZE=1 \
-            -s EXPORT_NAME='VoxelCraftModule' \
+            -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','setValue','getValue']" \
+            -s EXPORTED_FUNCTIONS="['_free', '_malloc']" \
             -s INITIAL_MEMORY=33554432 \
             -s TOTAL_STACK=4194304 \
+            -s MODULARIZE=1 \
+            -s EXPORT_NAME='VoxelCraftModule' \
+            -s STRICT=1 \
+            -s ALIASING_FUNCTION_POINTERS=0 \
+            -s DOMAIN_IS_NULL=1 \
+            -s EXPORT_ES6=0 \
             -O2 \
-            -I./include \
-            -I./raylib/src \
-            src/*.c \
-            -L./raylib/src \
-            -lraylib
+            -I../include \
+            -I../raylib/src \
+            ../raylib/src/libraylib.a \
+            -lm \
+            -ldl \
+            -lGL \
+            -lEGL \
+            -lX11 \
+            -s USE_LIBPNG=1 \
+            -s USE_ZLIB=1
+
+          ls -la
+
+          # Move shell.html to index.html
+          mv shell.html index.html
 
       - name: Create output structure
         run: |
