@@ -29,7 +29,7 @@ jobs:
       - name: Setup Emscripten
         run: |
           emsdk activate ${{ env.emsdk_version }}
-          source $EMSDK_ENV
+          . $EMSDK_ENV
 
       - name: Install Raylib (Web)
         run: |
@@ -46,15 +46,15 @@ jobs:
 
       - name: Build with Emscripten
         run: |
-          source $EMSDK_ENV
+          . $EMSDK_ENV
           emcc -o build-web/index.html \
             -s WASM=1 \
             -s USE_WEBGL=1 \
             -s ALLOW_MEMORY_GROWTH=1 \
             -s MAXIMUM_MEMORY=268435456 \
             -s ASYNCIFY=1 \
-            -s EXPORTED_RUNTIME_METHODS=['ccall','cwrap'] \
-            -s EXPORTED_FUNCTIONS=['_main','_InitGame','_UpdateGame','_DrawGame','_CloseGame'] \
+            -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap']" \
+            -s EXPORTED_FUNCTIONS="['_main','_InitGame','_UpdateGame','_DrawGame','_CloseGame']" \
             -s MODULARIZE=1 \
             -s EXPORT_NAME='VoxelCraftModule' \
             -s INITIAL_MEMORY=33554432 \
@@ -64,8 +64,7 @@ jobs:
             -I./raylib/src \
             src/*.c \
             -L./raylib/src \
-            -lraylib \
-            --shell-file templates/shell.html
+            -lraylib
 
       - name: Create output structure
         run: |

@@ -20,18 +20,21 @@ env:
 jobs:
   build-android:
     runs-on: ubuntu-latest
-    container:
-      image: ubuntu:22.04
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Install dependencies
         run: |
-          apt-get update
-          apt-get install -y wget unzip cmake ninja-build python3 openjdk-11-jdk
-          java -version
+          sudo apt-get update
+          sudo apt-get install -y wget unzip cmake ninja-build python3
 
       - name: Setup Android SDK
         run: |
@@ -41,6 +44,7 @@ jobs:
           unzip -q cmdline-tools.zip
           mv cmdline-tools latest
           rm cmdline-tools.zip
+          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
 
       - name: Setup Android NDK
         run: |
@@ -50,6 +54,7 @@ jobs:
           sdkmanager "ndk;${{ env.ANDROID_NDK_VERSION }}"
           sdkmanager "platforms;android-${{ env.ANDROID_API_LEVEL }}"
           sdkmanager "build-tools;34.0.0"
+          echo "ANDROID_NDK=$HOME/android-sdk/ndk/${{ env.ANDROID_NDK_VERSION }}" >> $GITHUB_ENV
 
       - name: Clone Raylib
         run: |
@@ -172,7 +177,7 @@ jobs:
           }
           EOF
 
-      - name: Create CMakeLists.txt for Android
+      - name: Create build.gradle for Android
         run: |
           cat > android/app/build.gradle << 'GRADLE_EOF'
           plugins {
@@ -227,27 +232,15 @@ jobs:
           }
           GRADLE_EOF
 
+      - name: Create proguard rules
+        run: |
+          echo "-keep class com.voxelcraft.game.** { *; }" > android/app/proguard-rules.pro
+
       - name: Copy native source
         run: |
           cp -r src android/app/src/main/
           cp -r include android/app/src/main/
           cp -r assets android/app/src/main/
-
-      - name: Create Android CMake config
-        run: |
-          cat >> android/app/build.gradle << 'GRADLE_EOF'
-
-          // Apply after project configuration
-          apply plugin: 'com.android.application'
-
-          android {
-              defaultConfig {
-                  cmake {
-                      targets "voxelcraft"
-                  }
-              }
-          }
-          GRADLE_EOF
 
       - name: Setup Gradle wrapper
         run: |
@@ -257,41 +250,21 @@ jobs:
           cd ..
 
       - name: Build debug APK
-        env:
-          ANDROID_SDK_ROOT: $HOME/android-sdk
-          ANDROID_NDK: $HOME/android-sdk/ndk/${{ env.ANDROID_NDK_VERSION }}
         run: |
           cd android
-          ./gradlew assembleDebug --no-daemon 2>&1 || echo "Gradle build attempted"
-
-          # Alternative: Create simple APK structure if Gradle fails
-          if [ ! -f app/build/outputs/apk/debug/app-debug.apk ]; then
-            mkdir -p build-output
-            # Create placeholder APK info
-            echo "APK build requires full Android SDK setup. Manual build instructions:"
-            echo "cd android && ./gradlew assembleDebug"
-          fi
+          ./gradlew assembleDebug --no-daemon --warning-mode=all
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: android-build-artifacts
-          path: |
-            android/app/build/outputs/**/*.apk
-            android/
+          name: voxelcraft-android-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-      - name: Create release package
-        run: |
-          cd android
-          zip -r ../voxelcraft-android.zip app/ gradle* settings.gradle build.gradle 2>/dev/null || true
-          cd ..
-          ls -la *.zip 2>/dev/null || echo "Package created"
-
-      - name: Upload Android Package
+      - name: Upload Android source package
         uses: actions/upload-artifact@v4
         with:
           name: voxelcraft-android-source
-          path: voxelcraft-android.zip
+          path: android/
           retention-days: 90
