@@ -1,0 +1,62 @@
+# VoxelCraft .gitignore
+
+# Build outputs
+build/
+dist/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile.generated
+CMakeLists.txt.user
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/app/src/main/jniLibs/*.so
+android/gradle/wrapper/gradle-wrapper.jar
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Web
+build-web/
+emscripten_cache/
+*.html.mem
+*.data
+*.wasm
+
+# Assets (user-generated)
+assets/textures/*.png
+!assets/textures/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary
+tmp/
+temp/
+*.tmp
