@@ -4,19 +4,15 @@
 
 #include "world.h"
 #include "game.h"
-#include "render.h"
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 
-// World chunks
-static Chunk g_chunks[4]; // 2x2 chunks around spawn
+// World voxels array
 static int g_worldVoxels[WORLD_SIZE][WORLD_SIZE][WORLD_SIZE];
 
 // Noise function for terrain generation (simplified Perlin-like noise)
 static float Noise2D(int x, int z) {
-    float fx = (float)x;
-    float fz = (float)z;
-
     int n = x + z * 57;
     n = (n << 13) ^ n;
     float noise = (1.0f - ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0f);
@@ -58,6 +54,9 @@ static int GetTerrainHeight(int x, int z) {
 
 // Initialize world
 void InitWorld(void) {
+    // Seed random for terrain generation
+    srand((unsigned int)time(NULL));
+
     // Clear all voxels
     for (int x = 0; x < WORLD_SIZE; x++) {
         for (int y = 0; y < WORLD_SIZE; y++) {
@@ -82,22 +81,24 @@ void GenerateTerrain(int chunkX, int chunkZ) {
             int worldZ = baseZ + z;
             int height = GetTerrainHeight(worldX, worldZ);
 
-            for (int y = 0; y < WORLD_SIZE; y++) {
-                int worldY = y;
+            // Clamp height to valid range
+            if (height < 1) height = 1;
+            if (height >= WORLD_SIZE - 1) height = WORLD_SIZE - 2;
 
-                if (worldY == 0) {
+            for (int y = 0; y < WORLD_SIZE; y++) {
+                if (y == 0) {
                     // Bedrock at bottom
                     g_worldVoxels[x][y][z] = BLOCK_STONE;
-                } else if (worldY < height - 3) {
-                    // Underground - stone with occasional ore
+                } else if (y < height - 3) {
+                    // Underground - stone
                     g_worldVoxels[x][y][z] = BLOCK_STONE;
-                } else if (worldY < height) {
+                } else if (y < height) {
                     // Dirt layer
                     g_worldVoxels[x][y][z] = BLOCK_DIRT;
-                } else if (worldY == height) {
+                } else if (y == height) {
                     // Surface - grass
                     g_worldVoxels[x][y][z] = BLOCK_GRASS;
-                } else if (worldY <= 4) {
+                } else if (y <= 4) {
                     // Water level
                     g_worldVoxels[x][y][z] = BLOCK_WATER;
                 } else {
@@ -109,23 +110,28 @@ void GenerateTerrain(int chunkX, int chunkZ) {
             // Add trees occasionally
             if (height > 5 && (worldX % 7 == 0) && (worldZ % 9 == 0)) {
                 int treeHeight = 4 + (rand() % 3);
-                for (int ty = 1; ty <= treeHeight; ty++) {
-                    if (height + ty < WORLD_SIZE) {
-                        g_worldVoxels[x][height + ty][z] = BLOCK_WOOD;
+                int treeBase = height + 1;
+
+                for (int ty = 0; ty < treeHeight; ty++) {
+                    int targetY = treeBase + ty;
+                    if (targetY >= 0 && targetY < WORLD_SIZE) {
+                        g_worldVoxels[x][targetY][z] = BLOCK_WOOD;
                     }
                 }
                 // Leaves
                 for (int dx = -2; dx <= 2; dx++) {
                     for (int dz = -2; dz <= 2; dz++) {
-                        for (int dy = treeHeight - 1; dy <= treeHeight + 1; dy++) {
+                        for (int dy = treeHeight - 2; dy <= treeHeight + 1; dy++) {
                             int lx = x + dx;
                             int lz = z + dz;
-                            if (lx >= 0 && lx < WORLD_SIZE && lz >= 0 && lz < WORLD_SIZE) {
-                                if (height + dy < WORLD_SIZE) {
-                                    if (g_worldVoxels[lx][height + dy][lz] == BLOCK_AIR) {
-                                        if (abs(dx) + abs(dz) <= 3) {
-                                            g_worldVoxels[lx][height + dy][lz] = BLOCK_LEAVES;
-                                        }
+                            int targetY = treeBase + dy;
+
+                            if (lx >= 0 && lx < WORLD_SIZE &&
+                                lz >= 0 && lz < WORLD_SIZE &&
+                                targetY >= 0 && targetY < WORLD_SIZE) {
+                                if (g_worldVoxels[lx][targetY][lz] == BLOCK_AIR) {
+                                    if (abs(dx) + abs(dz) <= 3) {
+                                        g_worldVoxels[lx][targetY][lz] = BLOCK_LEAVES;
                                     }
                                 }
                             }
@@ -174,7 +180,6 @@ int GetBlockAt(Vector3 pos) {
 
 // Draw the voxel world
 void DrawWorld(void) {
-    // Draw all visible faces (optimized with frustum culling would be better)
     for (int x = 0; x < WORLD_SIZE; x++) {
         for (int y = 0; y < WORLD_SIZE; y++) {
             for (int z = 0; z < WORLD_SIZE; z++) {
@@ -184,28 +189,22 @@ void DrawWorld(void) {
 
                 Vector3 pos = (Vector3){(float)x, (float)y, (float)z};
 
-                // Only draw visible faces
-                // Top face
+                // Only draw visible faces (face culling)
                 if (!IsVoxelOpaque(x, y + 1, z)) {
                     DrawVoxelFace(pos, FACE_TOP, voxel);
                 }
-                // Bottom face
                 if (!IsVoxelOpaque(x, y - 1, z)) {
                     DrawVoxelFace(pos, FACE_BOTTOM, voxel);
                 }
-                // Front face (Z-)
                 if (!IsVoxelOpaque(x, y, z - 1)) {
                     DrawVoxelFace(pos, FACE_FRONT, voxel);
                 }
-                // Back face (Z+)
                 if (!IsVoxelOpaque(x, y, z + 1)) {
                     DrawVoxelFace(pos, FACE_BACK, voxel);
                 }
-                // Left face (X-)
                 if (!IsVoxelOpaque(x - 1, y, z)) {
                     DrawVoxelFace(pos, FACE_LEFT, voxel);
                 }
-                // Right face (X+)
                 if (!IsVoxelOpaque(x + 1, y, z)) {
                     DrawVoxelFace(pos, FACE_RIGHT, voxel);
                 }
@@ -230,7 +229,7 @@ void DrawVoxel(Vector3 position, BlockType type) {
 void DrawVoxelFace(Vector3 position, int face, BlockType type) {
     Color color = GetBlockColor(type);
 
-    // Adjust color based on face for depth
+    // Adjust color based on face for depth perception
     switch (face) {
         case FACE_TOP:
             color = ColorBrightness(color, 0.1f);
@@ -246,26 +245,26 @@ void DrawVoxelFace(Vector3 position, int face, BlockType type) {
             break;
     }
 
-    Vector3 pos = {position.x + 0.5f, position.y + 0.5f, position.z + 0.5f};
+    Vector3 centerPos = {position.x + 0.5f, position.y + 0.5f, position.z + 0.5f};
 
     switch (face) {
         case FACE_TOP:
-            DrawPlane(pos, (Vector2){1.0f, 1.0f}, color);
+            DrawPlane(centerPos, (Vector2){1.0f, 1.0f}, color);
             break;
         case FACE_BOTTOM:
-            DrawPlane((Vector3){pos.x, pos.y - 1.0f, pos.z}, (Vector2){1.0f, 1.0f}, color);
+            DrawPlane((Vector3){centerPos.x, position.y, centerPos.z}, (Vector2){1.0f, 1.0f}, color);
             break;
         case FACE_FRONT:
-            DrawPlane((Vector3){pos.x, pos.y, pos.z - 0.5f}, (Vector2){1.0f, 1.0f}, color);
+            DrawPlane((Vector3){centerPos.x, centerPos.y, position.z}, (Vector2){1.0f, 1.0f}, color);
             break;
         case FACE_BACK:
-            DrawPlane((Vector3){pos.x, pos.y, pos.z + 0.5f}, (Vector2){1.0f, 1.0f}, color);
+            DrawPlane((Vector3){centerPos.x, centerPos.y, position.z + 1.0f}, (Vector2){1.0f, 1.0f}, color);
             break;
         case FACE_LEFT:
-            DrawPlane((Vector3){pos.x - 0.5f, pos.y, pos.z}, (Vector2){1.0f, 1.0f}, color);
+            DrawPlane((Vector3){position.x, centerPos.y, centerPos.z}, (Vector2){1.0f, 1.0f}, color);
             break;
         case FACE_RIGHT:
-            DrawPlane((Vector3){pos.x + 0.5f, pos.y, pos.z}, (Vector2){1.0f, 1.0f}, color);
+            DrawPlane((Vector3){position.x + 1.0f, centerPos.y, centerPos.z}, (Vector2){1.0f, 1.0f}, color);
             break;
     }
 }
@@ -279,9 +278,9 @@ Color GetBlockColor(BlockType type) {
         case BLOCK_WOOD:     return (Color){139, 90, 43, 255};
         case BLOCK_LEAVES:   return (Color){34, 139, 34, 255};
         case BLOCK_SAND:     return (Color){238, 214, 175, 255};
-        case BLOCK_WATER:    return (Color){64, 164, 223, 180};
+        case BLOCK_WATER:    return (Color){64, 164, 223, 200};
         case BLOCK_BRICK:    return (Color){178, 34, 34, 255};
-        case BLOCK_GLASS:    return (Color){255, 255, 255, 100};
+        case BLOCK_GLASS:    return (Color){255, 255, 255, 150};
         case BLOCK_WOOL:     return (Color){245, 245, 245, 255};
         case BLOCK_COBBLE:   return (Color){104, 104, 104, 255};
         case BLOCK_PLANK:    return (Color){205, 170, 125, 255};

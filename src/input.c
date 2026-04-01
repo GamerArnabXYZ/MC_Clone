@@ -18,46 +18,43 @@ static int g_rightTouchId = -1;
 static Vector2 g_leftTouchStart;
 static Vector2 g_rightTouchStart;
 
-// Initialize input system
 void InitInput(void) {
-    g_inputState = (InputState){
-        .moveForward = false,
-        .moveBackward = false,
-        .moveLeft = false,
-        .moveRight = false,
-        .jump = false,
-        .sprint = false,
-        .mouseDelta = (Vector2){0, 0},
-        .leftJoystick = (Vector2){0, 0},
-        .rightJoystick = (Vector2){0, 0},
-        .cameraButtonPressed = false,
-        .cameraButtonReleased = false
-    };
+    g_inputState.moveForward = false;
+    g_inputState.moveBackward = false;
+    g_inputState.moveLeft = false;
+    g_inputState.moveRight = false;
+    g_inputState.jump = false;
+    g_inputState.sprint = false;
+    g_inputState.mouseDelta = (Vector2){0, 0};
+    g_inputState.leftJoystick = (Vector2){0, 0};
+    g_inputState.rightJoystick = (Vector2){0, 0};
+    g_inputState.cameraButtonPressed = false;
+    g_inputState.cameraButtonReleased = false;
 
     // Setup mobile UI if touch device
     if (g_game.touchDevice) {
         g_mobileUI.leftJoystickArea.x = 0;
-        g_mobileUI.leftJoystickArea.y = SCREEN_HEIGHT - 250;
-        g_mobileUI.leftJoystickArea.width = 200;
-        g_mobileUI.leftJoystickArea.height = 200;
+        g_mobileUI.leftJoystickArea.y = (float)SCREEN_HEIGHT - 250.0f;
+        g_mobileUI.leftJoystickArea.width = 200.0f;
+        g_mobileUI.leftJoystickArea.height = 200.0f;
 
-        g_mobileUI.rightJoystickArea.x = SCREEN_WIDTH - 200;
-        g_mobileUI.rightJoystickArea.y = SCREEN_HEIGHT - 250;
-        g_mobileUI.rightJoystickArea.width = 200;
-        g_mobileUI.rightJoystickArea.height = 200;
+        g_mobileUI.rightJoystickArea.x = (float)SCREEN_WIDTH - 200.0f;
+        g_mobileUI.rightJoystickArea.y = (float)SCREEN_HEIGHT - 250.0f;
+        g_mobileUI.rightJoystickArea.width = 200.0f;
+        g_mobileUI.rightJoystickArea.height = 200.0f;
 
-        g_mobileUI.cameraButtonArea.x = SCREEN_WIDTH - 120;
-        g_mobileUI.cameraButtonArea.y = 50;
-        g_mobileUI.cameraButtonArea.width = 80;
-        g_mobileUI.cameraButtonArea.height = 80;
+        g_mobileUI.cameraButtonArea.x = (float)SCREEN_WIDTH - 120.0f;
+        g_mobileUI.cameraButtonArea.y = 50.0f;
+        g_mobileUI.cameraButtonArea.width = 80.0f;
+        g_mobileUI.cameraButtonArea.height = 80.0f;
 
         g_mobileUI.leftStickCenter = (Vector2){
-            g_mobileUI.leftJoystickArea.x + g_mobileUI.leftJoystickArea.width / 2,
-            g_mobileUI.leftJoystickArea.y + g_mobileUI.leftJoystickArea.height / 2
+            g_mobileUI.leftJoystickArea.x + g_mobileUI.leftJoystickArea.width / 2.0f,
+            g_mobileUI.leftJoystickArea.y + g_mobileUI.leftJoystickArea.height / 2.0f
         };
         g_mobileUI.rightStickCenter = (Vector2){
-            g_mobileUI.rightJoystickArea.x + g_mobileUI.rightJoystickArea.width / 2,
-            g_mobileUI.rightJoystickArea.y + g_mobileUI.rightJoystickArea.height / 2
+            g_mobileUI.rightJoystickArea.x + g_mobileUI.rightJoystickArea.width / 2.0f,
+            g_mobileUI.rightJoystickArea.y + g_mobileUI.rightJoystickArea.height / 2.0f
         };
 
         g_mobileUI.leftStickRadius = 50.0f;
@@ -69,7 +66,6 @@ void InitInput(void) {
     g_inputInitialized = true;
 }
 
-// Update input state each frame
 void UpdateInput(void) {
     if (!g_inputInitialized) return;
 
@@ -85,9 +81,7 @@ void UpdateInput(void) {
     }
 }
 
-// PC input handling
 void UpdatePCInput(void) {
-    // Movement keys
     g_inputState.moveForward = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
     g_inputState.moveBackward = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
     g_inputState.moveLeft = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
@@ -99,7 +93,7 @@ void UpdatePCInput(void) {
     Vector2 mousePos = GetMousePosition();
     static Vector2 lastMousePos = {0, 0};
 
-    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) || g_game.cameraMode == CAMERA_FIRST_PERSON) {
+    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
         g_inputState.mouseDelta.x = mousePos.x - lastMousePos.x;
         g_inputState.mouseDelta.y = mousePos.y - lastMousePos.y;
     } else {
@@ -108,47 +102,41 @@ void UpdatePCInput(void) {
 
     lastMousePos = mousePos;
 
-    // Escape to unlock cursor
+    // ESC to unlock cursor
     if (IsKeyPressed(KEY_ESCAPE)) {
         EnableCursor();
     }
-
-    // Click to lock cursor again
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && g_game.cameraMode == CAMERA_FIRST_PERSON) {
-        DisableCursor();
-    }
 }
 
-// Mobile input handling
 void UpdateMobileInput(void) {
     int touchCount = GetTouchPointCount();
 
+    // Handle touch inputs
     for (int i = 0; i < touchCount; i++) {
         Vector2 touchPos = GetTouchPosition(i);
 
-        // Determine which area was touched
         bool inLeftArea = CheckCollisionPointRec(touchPos, g_mobileUI.leftJoystickArea);
         bool inRightArea = CheckCollisionPointRec(touchPos, g_mobileUI.rightJoystickArea);
         bool inCameraArea = CheckCollisionPointRec(touchPos, g_mobileUI.cameraButtonArea);
 
-        // Left joystick - movement
+        // Assign touch to left joystick
         if (inLeftArea && g_leftTouchId == -1) {
             g_leftTouchId = i;
             g_leftTouchStart = touchPos;
         }
 
-        // Right joystick - camera
+        // Assign touch to right joystick
         if (inRightArea && g_rightTouchId == -1) {
             g_rightTouchId = i;
             g_rightTouchStart = touchPos;
         }
 
         // Camera button
-        if (inCameraArea && IsTouchButtonPressed(i)) {
+        if (inCameraArea) {
             g_inputState.cameraButtonPressed = true;
         }
 
-        // Update joystick values
+        // Update left joystick value
         if (g_leftTouchId == i) {
             Vector2 delta = Vector2Subtract(touchPos, g_leftTouchStart);
             float dist = Vector2Length(delta);
@@ -163,19 +151,17 @@ void UpdateMobileInput(void) {
             };
         }
 
+        // Update right joystick (camera control)
         if (g_rightTouchId == i) {
             Vector2 delta = Vector2Subtract(touchPos, g_rightTouchStart);
-
             g_inputState.mouseDelta = (Vector2){
                 delta.x * 0.1f,
                 delta.y * 0.1f
             };
-
-            // Update right joystick visual
             g_inputState.rightJoystick = delta;
         }
 
-        // Jump button (tap outside joysticks)
+        // Jump - tap outside joystick areas
         if (!inLeftArea && !inRightArea && !inCameraArea) {
             g_inputState.jump = true;
         }
@@ -197,23 +183,19 @@ void UpdateMobileInput(void) {
     }
 }
 
-// Get current input state
 InputState GetInputState(void) {
     UpdateInput();
     return g_inputState;
 }
 
-// Check if device is touch-enabled
 bool IsTouchDevice(void) {
     return IsMobile();
 }
 
-// Close input system
 void CloseInput(void) {
     g_inputInitialized = false;
 }
 
-// Draw mobile controls (on-screen joysticks)
 void DrawMobileControls(void) {
     if (!g_game.touchDevice) return;
 
@@ -236,7 +218,6 @@ void DrawMobileControls(void) {
 
     // Right joystick knob
     Vector2 rightKnob = Vector2Add(g_mobileUI.rightStickCenter, g_inputState.rightJoystick);
-    // Clamp to radius
     Vector2 delta = Vector2Subtract(rightKnob, g_mobileUI.rightStickCenter);
     if (Vector2Length(delta) > g_mobileUI.rightStickRadius) {
         delta = Vector2Scale(Vector2Normalize(delta), g_mobileUI.rightStickRadius);
@@ -250,25 +231,24 @@ void DrawMobileControls(void) {
     DrawRectangleRec(g_mobileUI.cameraButtonArea, btnColor);
     DrawRectangleLinesEx(g_mobileUI.cameraButtonArea, 3, WHITE);
 
-    // Camera icon (simple eye shape)
+    // Camera icon
     Vector2 btnCenter = (Vector2){
-        g_mobileUI.cameraButtonArea.x + g_mobileUI.cameraButtonArea.width / 2,
-        g_mobileUI.cameraButtonArea.y + g_mobileUI.cameraButtonArea.height / 2
+        g_mobileUI.cameraButtonArea.x + g_mobileUI.cameraButtonArea.width / 2.0f,
+        g_mobileUI.cameraButtonArea.y + g_mobileUI.cameraButtonArea.height / 2.0f
     };
     DrawCircleLines((int)btnCenter.x, (int)btnCenter.y, 20, WHITE);
     DrawCircleLines((int)btnCenter.x, (int)btnCenter.y, 10, WHITE);
 
     // Jump indicator
     Rectangle jumpArea = {
-        g_mobileUI.leftStickArea.x + g_mobileUI.leftStickArea.width + 20,
-        g_mobileUI.leftStickArea.y + g_mobileUI.leftStickArea.height - 80,
+        g_mobileUI.leftJoystickArea.x + g_mobileUI.leftJoystickArea.width + 20.0f,
+        g_mobileUI.leftJoystickArea.y + g_mobileUI.leftJoystickArea.height - 80.0f,
         60, 60
     };
     DrawRectangleRec(jumpArea, (Color){80, 80, 120, 180});
-    DrawText("JUMP", jumpArea.x + 8, jumpArea.y + 20, 12, WHITE);
+    DrawText("JUMP", (int)(jumpArea.x + 8), (int)(jumpArea.y + 20), 12, WHITE);
 }
 
-// Collision check helper
 bool CheckCollisionPointRect(Vector2 point, Rectangle rect) {
     return (point.x >= rect.x && point.x <= rect.x + rect.width &&
             point.y >= rect.y && point.y <= rect.y + rect.height);

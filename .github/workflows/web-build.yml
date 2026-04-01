@@ -1,5 +1,5 @@
 # Web Build Workflow - Emscripten (WebAssembly)
-# Optimized for Legacy Support (iOS 12.5, Android 5) and Web Branch Deployment
+# Builds the game for web browsers
 
 name: Web Build
 
@@ -41,17 +41,16 @@ jobs:
           git clone --depth 1 --branch ${{ env.raylib_version }} https://github.com/raysan5/raylib.git
           cd raylib/src
 
-          # Build for Web using static linking (better for legacy)
-          # PLATFORM_WEB automatically targets GLES2/WebGL1 in many raylib configurations
-          emmake make PLATFORM=PLATFORM_WEB RAYLIB_LIBTYPE=STATIC RAYLIB_USE_WEBGL=YES
+          # Build for Web using emmake
+          emmake make RAYLIB_LIBTYPE=SHARED RAYLIB_USE_WEBGL=YES
 
           cd ../..
+          ls -la raylib/src/*.a raylib/src/*.so 2>/dev/null || ls -la raylib/src/
 
       - name: Setup build directory
         run: |
           mkdir -p build-web
-          # Only copy assets if the directory exists to prevent workflow failure
-          if [ -d "assets" ]; then cp -r assets build-web/; fi
+          cp -r assets build-web/
 
       - name: Create HTML shell for Emscripten
         run: |
@@ -63,26 +62,24 @@ jobs:
               <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
               <title>VoxelCraft</title>
               <style>
-                  body { margin: 0; padding: 0; background: #000; overflow: hidden; color: white; font-family: sans-serif; }
-                  canvas { display: block; width: 100vw; height: 100vh; image-rendering: pixelated; }
-                  #status { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+                  body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+                  canvas { display: block; width: 100vw; height: 100vh; }
+                  #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-family: Arial; }
               </style>
           </head>
           <body>
-              <div id="status">Preparing VoxelCraft...</div>
-              <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+              <div id="loading">Loading VoxelCraft...</div>
+              <canvas id="canvas"></canvas>
               <script>
                   var Module = {
-                      canvas: document.getElementById('canvas'),
+                      canvas: (function() { return document.getElementById('canvas'); })(),
                       setStatus: function(text) {
-                          var statusElement = document.getElementById('status');
-                          if (!text) statusElement.style.display = 'none';
-                          else statusElement.innerHTML = text;
+                          if (text) console.log(text);
+                          var loading = document.getElementById('loading');
+                          if (loading) loading.style.display = 'none';
                       },
-                      totalDependencies: 0,
-                      monitorRunDependencies: function(left) {
-                          this.totalDependencies = Math.max(this.totalDependencies, left);
-                          Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+                      onRuntimeInitialized: function() {
+                          document.getElementById('loading').style.display = 'none';
                       }
                   };
               </script>
@@ -94,80 +91,101 @@ jobs:
       - name: Build VoxelCraft with Emscripten
         run: |
           . $EMSDK_ENV
+
           cd build-web
 
-          # COMPILER FLAGS EXPLAINED FOR LEGACY:
-          # -s MAX_WEBGL_VERSION=1: Forces WebGL 1.0 (Required for iOS 12 / Android 5)
-          # -s ASYNCIFY: Needed for raylib's while(!WindowShouldClose) loop
-          # -s INITIAL_MEMORY: 64MB (Safe for old mobile browsers)
-          # -s ALLOW_MEMORY_GROWTH: Allows expansion if needed
-          
+          # Compile with proper Emscripten flags
           emcc ../src/*.c \
             -o voxelcraft.js \
             -s WASM=1 \
-            -s MAX_WEBGL_VERSION=1 \
-            -s MIN_WEBGL_VERSION=1 \
+            -s USE_WEBGL=1 \
             -s ALLOW_MEMORY_GROWTH=1 \
-            -s INITIAL_MEMORY=67108864 \
+            -s MAXIMUM_MEMORY=268435456 \
             -s ASYNCIFY=1 \
-            -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap']" \
+            -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','setValue','getValue']" \
+            -s EXPORTED_FUNCTIONS="['_free', '_malloc']" \
+            -s INITIAL_MEMORY=33554432 \
+            -s TOTAL_STACK=4194304 \
+            -s MODULARIZE=1 \
+            -s EXPORT_NAME='VoxelCraftModule' \
+            -s STRICT=1 \
+            -s ALIASING_FUNCTION_POINTERS=0 \
+            -s DOMAIN_IS_NULL=1 \
+            -s EXPORT_ES6=0 \
             -O2 \
             -I../include \
             -I../raylib/src \
             ../raylib/src/libraylib.a \
+            -lm \
+            -ldl \
+            -lGL \
+            -lEGL \
+            -lX11 \
             -s USE_LIBPNG=1 \
-            -s USE_ZLIB=1 \
-            --shell-file shell.html
+            -s USE_ZLIB=1
 
-          # Ensure output is named index.html for web hosting
+          ls -la
+
+          # Move shell.html to index.html
           mv shell.html index.html
 
-      - name: Deploy to Web Branch
+      - name: Create output structure
         run: |
-          # Configure Git
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Initialize a temporary repo in the build folder
-          cd build-web
-          git init
-          git checkout -b web
-          git add .
-          git commit -m "Deploy build to web branch: ${{ github.sha }}"
-          
-          # Push to the 'web' branch of the current repository
-          # Uses the GITHUB_TOKEN for authentication
-          git push --force "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" web
+          mkdir -p dist
+          cp -r build-web/* dist/
+          ls -la dist/
 
-      - name: Upload Artifacts
+      - name: Upload Web Build
         uses: actions/upload-artifact@v4
         with:
-          name: web-build-files
-          path: build-web/
+          name: web-build
+          path: dist/
+          retention-days: 30
+
+      - name: Create downloadable zip
+        run: |
+          cd dist && zip -r ../voxelcraft-web.zip . && cd ..
+          ls -la voxelcraft-web.zip
+
+      - name: Upload Web Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: voxelcraft-web-package
+          path: voxelcraft-web.zip
+          retention-days: 90
 
   deploy-pages:
     needs: build-web
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+
     permissions:
       contents: read
       pages: write
       id-token: write
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
-      - name: Download Build
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Web Build
         uses: actions/download-artifact@v4
         with:
-          name: web-build-files
+          name: web-build
           path: dist
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
-      - name: Upload to Pages
+
+      - name: Upload to GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
-      - name: Deploy
+
+      - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
