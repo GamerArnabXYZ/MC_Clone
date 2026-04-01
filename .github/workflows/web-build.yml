@@ -1,15 +1,15 @@
 # Web Build Workflow - Emscripten (WebAssembly)
-# Builds the game for web browsers
+# Builds the game for web browsers with legacy device support
 
 name: Web Build
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, web]
     tags:
       - 'v*'
   pull_request:
-    branches: [main, master]
+    branches: [main, master, web]
   workflow_dispatch:
 
 env:
@@ -41,20 +41,17 @@ jobs:
           git clone --depth 1 --branch ${{ env.raylib_version }} https://github.com/raysan5/raylib.git
           cd raylib/src
 
-          # Build for Web using emmake
-          emmake make RAYLIB_LIBTYPE=SHARED RAYLIB_USE_WEBGL=YES
-
-          cd ../..
-          ls -la raylib/src/*.a raylib/src/*.so 2>/dev/null || ls -la raylib/src/
+          # Build raylib for web
+          emmake make RAYLIB_LIBTYPE=SHARED
 
       - name: Setup build directory
         run: |
           mkdir -p build-web
           cp -r assets build-web/
 
-      - name: Create HTML shell for Emscripten
+      - name: Create HTML shell
         run: |
-          cat > build-web/shell.html << 'EOF'
+          cat > build-web/index.html << 'EOF'
           <!DOCTYPE html>
           <html>
           <head>
@@ -62,24 +59,68 @@ jobs:
               <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
               <title>VoxelCraft</title>
               <style>
-                  body { margin: 0; padding: 0; background: #000; overflow: hidden; }
-                  canvas { display: block; width: 100vw; height: 100vh; }
-                  #loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-family: Arial; }
+                  * { margin: 0; padding: 0; box-sizing: border-box; }
+                  body {
+                      background: #1a1a2e;
+                      display: flex;
+                      justify-content: center;
+                      align-items: center;
+                      height: 100vh;
+                      overflow: hidden;
+                      font-family: 'Segoe UI', Arial, sans-serif;
+                  }
+                  #container {
+                      text-align: center;
+                      color: #eee;
+                  }
+                  canvas {
+                      display: block;
+                      max-width: 100%;
+                      max-height: 100vh;
+                      background: #000;
+                  }
+                  #loading {
+                      font-size: 24px;
+                      margin: 20px;
+                      animation: pulse 1.5s infinite;
+                  }
+                  @keyframes pulse {
+                      0%, 100% { opacity: 1; }
+                      50% { opacity: 0.5; }
+                  }
+                  #error {
+                      color: #ff6b6b;
+                      display: none;
+                      padding: 20px;
+                  }
               </style>
           </head>
           <body>
-              <div id="loading">Loading VoxelCraft...</div>
-              <canvas id="canvas"></canvas>
+              <div id="container">
+                  <div id="loading">Loading VoxelCraft...</div>
+                  <div id="error">WebGL not supported on this device</div>
+                  <canvas id="canvas"></canvas>
+              </div>
               <script>
                   var Module = {
-                      canvas: (function() { return document.getElementById('canvas'); })(),
+                      canvas: (function() {
+                          var canvas = document.getElementById('canvas');
+                          canvas.width = Math.min(window.innerWidth, 1280);
+                          canvas.height = Math.min(window.innerHeight, 720);
+                          return canvas;
+                      })(),
                       setStatus: function(text) {
-                          if (text) console.log(text);
                           var loading = document.getElementById('loading');
-                          if (loading) loading.style.display = 'none';
+                          if (loading) loading.textContent = text || 'Loaded';
                       },
                       onRuntimeInitialized: function() {
+                          var loading = document.getElementById('loading');
+                          if (loading) loading.style.display = 'none';
+                          console.log('VoxelCraft loaded successfully');
+                      },
+                      onAbort: function() {
                           document.getElementById('loading').style.display = 'none';
+                          document.getElementById('error').style.display = 'block';
                       }
                   };
               </script>
@@ -94,11 +135,11 @@ jobs:
 
           cd build-web
 
-          # Compile with proper Emscripten flags
+          # Compile with legacy device compatibility
           emcc ../src/*.c \
             -o voxelcraft.js \
             -s WASM=1 \
-            -s USE_WEBGL=1 \
+            -s USE_WEBGL2=1 \
             -s ALLOW_MEMORY_GROWTH=1 \
             -s MAXIMUM_MEMORY=268435456 \
             -s ASYNCIFY=1 \
@@ -110,24 +151,18 @@ jobs:
             -s EXPORT_NAME='VoxelCraftModule' \
             -s STRICT=1 \
             -s ALIASING_FUNCTION_POINTERS=0 \
-            -s DOMAIN_IS_NULL=1 \
-            -s EXPORT_ES6=0 \
+            -s NO_EXIT_RUNTIME=1 \
+            -s IGNORE_MISSING_MAIN=0 \
+            -s DEFAULT_PTHREAD_STACK_SIZE=65536 \
+            -s USE_PTHREADS=0 \
             -O2 \
             -I../include \
             -I../raylib/src \
             ../raylib/src/libraylib.a \
             -lm \
-            -ldl \
-            -lGL \
-            -lEGL \
-            -lX11 \
-            -s USE_LIBPNG=1 \
-            -s USE_ZLIB=1
+            -ldl
 
           ls -la
-
-          # Move shell.html to index.html
-          mv shell.html index.html
 
       - name: Create output structure
         run: |
@@ -157,7 +192,7 @@ jobs:
   deploy-pages:
     needs: build-web
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/web' || startsWith(github.ref, 'refs/tags/v')
 
     permissions:
       contents: read
