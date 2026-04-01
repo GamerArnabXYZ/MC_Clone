@@ -93,25 +93,18 @@ jobs:
 
           cd raylib/src
 
-          # Build for arm64-v8a
-          mkdir -p build-arm64
-          cd build-arm64
-          cmake .. -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM=android-${{ env.ANDROID_API_LEVEL }} \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_POSITION_INDEPENDENT_CODE=1
-          make -j$(nproc)
-
-          cd ../..
+          # Use make-based build instead of cmake for NDK compatibility
+          make PLATFORM=PLATFORM_ANDROID ANDROID_NDK_HOME=$ANDROID_NDK ANDROID_API=${{ env.ANDROID_API_LEVEL }} -j$(nproc) RAYLIB_LIBTYPE=STATIC
 
       - name: Create Android project structure
         run: |
           mkdir -p android/app/src/main/{java,res,assets/textures}
           mkdir -p android/app/src/main/jniLibs/arm64-v8a
 
-          # Copy raylib if available
-          if [ -d "raylib/src/build-arm64" ]; then
+          # Copy raylib if available (make output location)
+          if [ -f "raylib/src/libraylib.a" ]; then
+            cp raylib/src/libraylib.a android/app/src/main/jniLibs/arm64-v8a/
+          elif [ -d "raylib/src/build-arm64" ]; then
             cp raylib/src/build-arm64/*.a android/app/src/main/jniLibs/arm64-v8a/ 2>/dev/null || true
           fi
 

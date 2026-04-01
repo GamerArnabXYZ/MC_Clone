@@ -146,7 +146,7 @@ jobs:
             -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','setValue','getValue']" \
             -s EXPORTED_FUNCTIONS="['_free', '_malloc']" \
             -s INITIAL_MEMORY=33554432 \
-            -s TOTAL_STACK=4194304 \
+            -s STACK_SIZE=4194304 \
             -s MODULARIZE=1 \
             -s EXPORT_NAME='VoxelCraftModule' \
             -s STRICT=1 \
