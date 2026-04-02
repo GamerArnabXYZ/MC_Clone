@@ -41,8 +41,11 @@ jobs:
           git clone --depth 1 --branch ${{ env.raylib_version }} https://github.com/raysan5/raylib.git
           cd raylib/src
 
-          # Build raylib for web
-          emmake make RAYLIB_LIBTYPE=SHARED
+          # Build raylib for web (creates libraylib.a)
+          emmake make RAYLIB_LIBTYPE=STATIC
+
+          # Verify the library was built
+          ls -la *.a || ls -la
 
       - name: Setup build directory
         run: |
@@ -133,10 +136,12 @@ jobs:
         run: |
           . $EMSDK_ENV
 
+          # Get absolute path
+          WORKSPACE=${{ github.workspace }}
           cd build-web
 
-          # Compile with legacy device compatibility
-          emcc ../src/*.c \
+          # Compile with raylib from parent directory
+          emcc $WORKSPACE/src/*.c \
             -o voxelcraft.js \
             -s WASM=1 \
             -s USE_WEBGL2=1 \
@@ -154,9 +159,9 @@ jobs:
             -s IGNORE_MISSING_MAIN=0 \
             -s USE_PTHREADS=0 \
             -O2 \
-            -I../include \
-            -I../raylib/src \
-            ../raylib/src/libraylib.a \
+            -I$WORKSPACE/include \
+            -I$WORKSPACE/raylib/src \
+            $WORKSPACE/raylib/src/libraylib.a \
             -lm \
             -ldl
 
