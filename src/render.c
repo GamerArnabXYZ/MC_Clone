@@ -8,6 +8,9 @@
 #include <stdlib.h>
 #include <time.h>
 
+// Static seed for procedural textures
+static bool g_texRandSeeded = false;
+
 // Block textures array
 static Texture2D g_blockTextures[BLOCK_COUNT];
 
@@ -151,6 +154,12 @@ Image GenerateProceduralTexture(BlockType type) {
 // Load block textures with fallback
 void LoadBlockTextures(void) {
     g_game.texturesLoaded = false;
+
+    // Seed random only once for procedural textures
+    if (!g_texRandSeeded) {
+        srand((unsigned int)time(NULL));
+        g_texRandSeeded = true;
+    }
 
     const char* textureNames[BLOCK_COUNT] = {
         "air.png", "grass.png", "dirt.png", "stone.png", "wood.png",

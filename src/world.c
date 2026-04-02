@@ -88,22 +88,22 @@ void GenerateTerrain(int chunkX, int chunkZ) {
             for (int y = 0; y < WORLD_SIZE; y++) {
                 if (y == 0) {
                     // Bedrock at bottom
-                    g_worldVoxels[x][y][z] = BLOCK_STONE;
+                    g_worldVoxels[worldX][y][worldZ] = BLOCK_STONE;
                 } else if (y < height - 3) {
                     // Underground - stone
-                    g_worldVoxels[x][y][z] = BLOCK_STONE;
+                    g_worldVoxels[worldX][y][worldZ] = BLOCK_STONE;
                 } else if (y < height) {
                     // Dirt layer
-                    g_worldVoxels[x][y][z] = BLOCK_DIRT;
+                    g_worldVoxels[worldX][y][worldZ] = BLOCK_DIRT;
                 } else if (y == height) {
                     // Surface - grass
-                    g_worldVoxels[x][y][z] = BLOCK_GRASS;
+                    g_worldVoxels[worldX][y][worldZ] = BLOCK_GRASS;
                 } else if (y <= 4) {
                     // Water level
-                    g_worldVoxels[x][y][z] = BLOCK_WATER;
+                    g_worldVoxels[worldX][y][worldZ] = BLOCK_WATER;
                 } else {
                     // Above water
-                    g_worldVoxels[x][y][z] = BLOCK_AIR;
+                    g_worldVoxels[worldX][y][worldZ] = BLOCK_AIR;
                 }
             }
 
@@ -115,15 +115,15 @@ void GenerateTerrain(int chunkX, int chunkZ) {
                 for (int ty = 0; ty < treeHeight; ty++) {
                     int targetY = treeBase + ty;
                     if (targetY >= 0 && targetY < WORLD_SIZE) {
-                        g_worldVoxels[x][targetY][z] = BLOCK_WOOD;
+                        g_worldVoxels[worldX][targetY][worldZ] = BLOCK_WOOD;
                     }
                 }
                 // Leaves
                 for (int dx = -2; dx <= 2; dx++) {
                     for (int dz = -2; dz <= 2; dz++) {
                         for (int dy = treeHeight - 2; dy <= treeHeight + 1; dy++) {
-                            int lx = x + dx;
-                            int lz = z + dz;
+                            int lx = worldX + dx;
+                            int lz = worldZ + dz;
                             int targetY = treeBase + dy;
 
                             if (lx >= 0 && lx < WORLD_SIZE &&

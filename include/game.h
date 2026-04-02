@@ -129,7 +129,6 @@ void UpdatePlaying(void);
 void UpdatePlayer(InputState* input);
 void UpdateCamera(void);
 void SelectInventorySlot(int slot);
-void ChangeCameraMode(void);
 void DrawPlaying(void);
 void DrawPlayerModel(void);
 

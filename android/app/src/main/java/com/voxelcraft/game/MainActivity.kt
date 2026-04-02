@@ -1,0 +1,20 @@
+package com.voxelcraft.game
+
+import android.app.Activity
+import android.os.Bundle
+import android.view.WindowManager
+
+class MainActivity : Activity() {
+    init {
+        try {
+            System.loadLibrary("voxelcraft")
+        } catch (e: UnsatisfiedLinkError) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+}

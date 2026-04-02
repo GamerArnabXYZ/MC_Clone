@@ -19,7 +19,6 @@ void DrawHomeScreen(void);
 void DrawPlayingUI(void);
 void DrawInventoryBar(void);
 void DrawCrosshair(void);
-void DrawBlockInfo(BlockType type);
 void DrawDebugInfo(void);
 void DrawFPS(void);
 

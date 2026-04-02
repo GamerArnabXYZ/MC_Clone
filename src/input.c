@@ -248,8 +248,3 @@ void DrawMobileControls(void) {
     DrawRectangleRec(jumpArea, (Color){80, 80, 120, 180});
     DrawText("JUMP", (int)(jumpArea.x + 8), (int)(jumpArea.y + 20), 12, WHITE);
 }
-
-bool CheckCollisionPointRect(Vector2 point, Rectangle rect) {
-    return (point.x >= rect.x && point.x <= rect.x + rect.width &&
-            point.y >= rect.y && point.y <= rect.y + rect.height);
-}

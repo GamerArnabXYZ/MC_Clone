@@ -29,6 +29,5 @@ InputState GetInputState(void);
 bool IsTouchDevice(void);
 
 void DrawMobileControls(void);
-bool CheckCollisionPointRect(Vector2 point, Rectangle rect);
 
 #endif // INPUT_H
