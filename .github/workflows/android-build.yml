@@ -1,5 +1,5 @@
 # Android Build Workflow
-# Builds the game as an Android APK using Android NDK
+# Builds the game as an Android APK using Raylib + Android NDK
 
 name: Android Build
 
@@ -13,7 +13,6 @@ on:
   workflow_dispatch:
 
 env:
-  ANDROID_NDK_VERSION: 'r21e'
   ANDROID_API_LEVEL: '21'
   raylib_version: '5.0'
 
@@ -31,17 +30,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install dependencies
+      - name: Install build tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget unzip cmake ninja-build python3
+          sudo apt-get update -qq
+          sudo apt-get install -y wget unzip cmake ninja-build make git
 
-      - name: Setup Android SDK
+      - name: Setup Android SDK + cmdline-tools
         run: |
-          # Unset any conflicting SDK vars
-          unset ANDROID_HOME
-          unset ANDROID_SDK_ROOT
-
+          unset ANDROID_HOME ANDROID_SDK_ROOT
           mkdir -p $HOME/android-sdk/cmdline-tools
           cd $HOME/android-sdk/cmdline-tools
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip
@@ -49,75 +45,118 @@ jobs:
           mv cmdline-tools latest
           rm cmdline-tools.zip
           echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$HOME/android-sdk/platform-tools"           >> $GITHUB_PATH
 
-      - name: Setup Android NDK and SDK components
+      - name: Accept licenses & install SDK components
         run: |
-          export ANDROID_HOME=$HOME/android-sdk
-          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
-          yes | sdkmanager --licenses || true
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platforms;android-${{ env.ANDROID_API_LEVEL }}" "build-tools;34.0.0"
 
-          # Try to install NDK - multiple fallback versions
-          for ndk_version in "21.4.7075529" "23.1.7779620" "25.1.8937393"; do
-            if [ -z "$ANDROID_NDK" ]; then
-              echo "Trying NDK version: $ndk_version"
-              sdkmanager "ndk;$ndk_version" 2>/dev/null && \
-                echo "ANDROID_NDK=$HOME/android-sdk/ndk/$ndk_version" >> $GITHUB_ENV && \
-                echo "NDK installed: $ndk_version" && break || true
+      - name: Install Android NDK
+        run: |
+          # Try stable NDK versions in order of preference
+          NDK_INSTALLED=""
+          for ndk_ver in "25.2.9519653" "23.2.8568313" "21.4.7075529"; do
+            echo "Trying NDK $ndk_ver..."
+            if sdkmanager "ndk;$ndk_ver" 2>/dev/null; then
+              NDK_INSTALLED="$HOME/android-sdk/ndk/$ndk_ver"
+              echo "NDK_HOME=$NDK_INSTALLED" >> $GITHUB_ENV
+              echo "Installed NDK at: $NDK_INSTALLED"
+              break
             fi
           done
-
-          sdkmanager "platforms;android-${{ env.ANDROID_API_LEVEL }}"
-          sdkmanager "build-tools;34.0.0"
-
-      - name: Clone and Build Raylib for Android
-        run: |
-          if [ -z "$ANDROID_NDK" ]; then
-            echo "Skipping Raylib build - no NDK available"
-            exit 0
+          if [ -z "$NDK_INSTALLED" ]; then
+            echo "ERROR: No NDK version could be installed"
+            exit 1
           fi
 
-          export ANDROID_HOME=$HOME/android-sdk
-          export ANDROID_NDK_HOME=$ANDROID_NDK
-          export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_NDK
-
-          git clone --depth 1 --branch ${{ env.raylib_version }} https://github.com/raysan5/raylib.git
+      - name: Clone & Build Raylib for Android (arm64-v8a)
+        run: |
+          git clone --depth 1 --branch ${{ env.raylib_version }} \
+            https://github.com/raysan5/raylib.git raylib
 
           cd raylib/src
-          make PLATFORM=PLATFORM_ANDROID ANDROID_NDK_HOME=$ANDROID_NDK ANDROID_API=${{ env.ANDROID_API_LEVEL }} -j$(nproc) RAYLIB_LIBTYPE=STATIC
 
-          cd ..
+          # Build raylib as static lib for Android arm64
+          # ANDROID_NDK_HOME, ANDROID_API and ABI must all be set
+          make PLATFORM=PLATFORM_ANDROID \
+               ANDROID_NDK=$NDK_HOME \
+               ANDROID_NDK_HOME=$NDK_HOME \
+               ANDROID_API_VERSION=${{ env.ANDROID_API_LEVEL }} \
+               ANDROID_ARCH=arm64 \
+               RAYLIB_LIBTYPE=STATIC \
+               -j$(nproc) 2>&1
 
-          # Copy raylib to android project
-          mkdir -p android/app/libs
-          cp src/libraylib.a android/app/libs/ 2>/dev/null || true
+          ls -la libraylib.a
+          echo "Raylib Android build OK"
 
-      - name: Copy source files and assets
+      - name: Copy raylib library to Android project
         run: |
-          cp -r src android/app/src/main/ 2>/dev/null || true
-          cp -r include android/app/src/main/ 2>/dev/null || true
-          cp -r assets android/app/src/main/ 2>/dev/null || true
+          # CMakeLists expects the lib at cpp/libs/libraylib.a
+          mkdir -p android/app/src/main/cpp/libs
+          cp raylib/src/libraylib.a android/app/src/main/cpp/libs/
+          # Also copy raylib headers
+          mkdir -p android/app/src/main/cpp/raylib_include
+          cp raylib/src/raylib.h  android/app/src/main/cpp/raylib_include/
+          cp raylib/src/raymath.h android/app/src/main/cpp/raylib_include/ 2>/dev/null || true
+          cp raylib/src/rlgl.h    android/app/src/main/cpp/raylib_include/ 2>/dev/null || true
+
+      - name: Copy game source files into Android project
+        run: |
+          mkdir -p android/app/src/main/cpp/game_src
+          mkdir -p android/app/src/main/cpp/game_include
+          # main game sources (exclude android stub)
+          cp src/input.c  android/app/src/main/cpp/game_src/
+          cp src/render.c android/app/src/main/cpp/game_src/
+          cp src/world.c  android/app/src/main/cpp/game_src/
+          cp src/main.c   android/app/src/main/cpp/
+          # headers
+          cp include/*.h  android/app/src/main/cpp/game_include/
+          # assets
+          mkdir -p android/app/src/main/assets/textures
+          [ -d assets/textures ] && cp -r assets/textures/. android/app/src/main/assets/textures/ || true
+
+      - name: Update CMakeLists to include raylib headers
+        run: |
+          # Patch CMakeLists to also include the copied raylib headers
+          sed -i 's|${CMAKE_CURRENT_SOURCE_DIR}/game_include|${CMAKE_CURRENT_SOURCE_DIR}/game_include\n    ${CMAKE_CURRENT_SOURCE_DIR}/raylib_include|' \
+            android/app/src/main/cpp/CMakeLists.txt || true
 
       - name: Setup Gradle wrapper
         working-directory: android
         run: |
-          # Use compatible Gradle version for AGP 8.2.2
-          gradle wrapper --gradle-version=8.5
-          ls -la
+          gradle wrapper --gradle-version=8.5 2>&1
+          chmod +x gradlew
 
       - name: Build debug APK
         working-directory: android
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
-          ./gradlew assembleDebug --no-daemon --warning-mode=all 2>&1 || {
-            echo "Build failed, checking what went wrong..."
-            ls -la
-            ls -la app/
-          }
+          ./gradlew assembleDebug \
+            --no-daemon \
+            --warning-mode=all \
+            --stacktrace \
+            2>&1
 
-      - name: Upload APK artifacts
+      - name: Verify APK output
+        run: |
+          APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
+          if [ -f "$APK_PATH" ]; then
+            ls -lh "$APK_PATH"
+            echo "APK built successfully!"
+          else
+            echo "APK not found at expected path"
+            find android/app/build -name "*.apk" 2>/dev/null || echo "No APK found anywhere"
+            exit 1
+          fi
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: voxelcraft-android-apk
+          name: voxelcraft-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 

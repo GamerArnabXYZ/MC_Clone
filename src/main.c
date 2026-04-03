@@ -203,10 +203,19 @@ void UpdatePlayer(InputState* input) {
 
     g_game.player.position = newPos;
 
-    // Camera rotation - only in first person with locked cursor
+    // Camera rotation - PC with locked cursor
     if (!g_game.touchDevice && g_game.cameraMode == CAMERA_FIRST_PERSON && g_cursorLocked) {
         g_game.player.yaw += input->mouseDelta.x * 0.003f;
         g_game.player.pitch -= input->mouseDelta.y * 0.003f;
+
+        if (g_game.player.pitch > PI/2.0f - 0.1f) g_game.player.pitch = PI/2.0f - 0.1f;
+        if (g_game.player.pitch < -PI/2.0f + 0.1f) g_game.player.pitch = -PI/2.0f + 0.1f;
+    }
+
+    // Camera rotation - Mobile right joystick
+    if (g_game.touchDevice) {
+        g_game.player.yaw   += input->mouseDelta.x * 0.005f;
+        g_game.player.pitch -= input->mouseDelta.y * 0.005f;
 
         if (g_game.player.pitch > PI/2.0f - 0.1f) g_game.player.pitch = PI/2.0f - 0.1f;
         if (g_game.player.pitch < -PI/2.0f + 0.1f) g_game.player.pitch = -PI/2.0f + 0.1f;

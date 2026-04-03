@@ -79,6 +79,10 @@ void GenerateTerrain(int chunkX, int chunkZ) {
         for (int z = 0; z < WORLD_SIZE; z++) {
             int worldX = baseX + x;
             int worldZ = baseZ + z;
+
+            // Skip if out of world bounds
+            if (worldX < 0 || worldX >= WORLD_SIZE || worldZ < 0 || worldZ >= WORLD_SIZE) continue;
+
             int height = GetTerrainHeight(worldX, worldZ);
 
             // Clamp height to valid range
@@ -229,43 +233,88 @@ void DrawVoxel(Vector3 position, BlockType type) {
 void DrawVoxelFace(Vector3 position, int face, BlockType type) {
     Color color = GetBlockColor(type);
 
-    // Adjust color based on face for depth perception
+    // Adjust color based on face for depth perception (ambient occlusion fake)
     switch (face) {
         case FACE_TOP:
             color = ColorBrightness(color, 0.1f);
             break;
         case FACE_BOTTOM:
-            color = ColorBrightness(color, -0.2f);
+            color = ColorBrightness(color, -0.3f);
             break;
         case FACE_LEFT:
         case FACE_FRONT:
-            color = ColorBrightness(color, -0.1f);
+            color = ColorBrightness(color, -0.15f);
+            break;
+        case FACE_BACK:
+        case FACE_RIGHT:
+            color = ColorBrightness(color, -0.05f);
             break;
         default:
             break;
     }
 
-    Vector3 centerPos = {position.x + 0.5f, position.y + 0.5f, position.z + 0.5f};
+    float x = position.x + 0.5f;
+    float y = position.y + 0.5f;
+    float z = position.z + 0.5f;
+    float h = 0.5f; // half-size
 
+    // Use DrawTriangle3D to build quads (2 triangles per face)
+    // Winding order: counter-clockwise for front-facing
     switch (face) {
-        case FACE_TOP:
-            DrawPlane(centerPos, (Vector2){1.0f, 1.0f}, color);
+        case FACE_TOP: {
+            Vector3 v0 = {x - h, y + h, z - h};
+            Vector3 v1 = {x - h, y + h, z + h};
+            Vector3 v2 = {x + h, y + h, z + h};
+            Vector3 v3 = {x + h, y + h, z - h};
+            DrawTriangle3D(v0, v1, v2, color);
+            DrawTriangle3D(v0, v2, v3, color);
             break;
-        case FACE_BOTTOM:
-            DrawPlane((Vector3){centerPos.x, position.y, centerPos.z}, (Vector2){1.0f, 1.0f}, color);
+        }
+        case FACE_BOTTOM: {
+            Vector3 v0 = {x - h, y - h, z + h};
+            Vector3 v1 = {x - h, y - h, z - h};
+            Vector3 v2 = {x + h, y - h, z - h};
+            Vector3 v3 = {x + h, y - h, z + h};
+            DrawTriangle3D(v0, v1, v2, color);
+            DrawTriangle3D(v0, v2, v3, color);
             break;
-        case FACE_FRONT:
-            DrawPlane((Vector3){centerPos.x, centerPos.y, position.z}, (Vector2){1.0f, 1.0f}, color);
+        }
+        case FACE_FRONT: { // -Z face
+            Vector3 v0 = {x + h, y - h, z - h};
+            Vector3 v1 = {x + h, y + h, z - h};
+            Vector3 v2 = {x - h, y + h, z - h};
+            Vector3 v3 = {x - h, y - h, z - h};
+            DrawTriangle3D(v0, v1, v2, color);
+            DrawTriangle3D(v0, v2, v3, color);
             break;
-        case FACE_BACK:
-            DrawPlane((Vector3){centerPos.x, centerPos.y, position.z + 1.0f}, (Vector2){1.0f, 1.0f}, color);
+        }
+        case FACE_BACK: { // +Z face
+            Vector3 v0 = {x - h, y - h, z + h};
+            Vector3 v1 = {x - h, y + h, z + h};
+            Vector3 v2 = {x + h, y + h, z + h};
+            Vector3 v3 = {x + h, y - h, z + h};
+            DrawTriangle3D(v0, v1, v2, color);
+            DrawTriangle3D(v0, v2, v3, color);
             break;
-        case FACE_LEFT:
-            DrawPlane((Vector3){position.x, centerPos.y, centerPos.z}, (Vector2){1.0f, 1.0f}, color);
+        }
+        case FACE_LEFT: { // -X face
+            Vector3 v0 = {x - h, y - h, z - h};
+            Vector3 v1 = {x - h, y + h, z - h};
+            Vector3 v2 = {x - h, y + h, z + h};
+            Vector3 v3 = {x - h, y - h, z + h};
+            DrawTriangle3D(v0, v1, v2, color);
+            DrawTriangle3D(v0, v2, v3, color);
             break;
-        case FACE_RIGHT:
-            DrawPlane((Vector3){position.x + 1.0f, centerPos.y, centerPos.z}, (Vector2){1.0f, 1.0f}, color);
+        }
+        case FACE_RIGHT: { // +X face
+            Vector3 v0 = {x + h, y - h, z + h};
+            Vector3 v1 = {x + h, y + h, z + h};
+            Vector3 v2 = {x + h, y + h, z - h};
+            Vector3 v3 = {x + h, y - h, z - h};
+            DrawTriangle3D(v0, v1, v2, color);
+            DrawTriangle3D(v0, v2, v3, color);
             break;
+        }
     }
 }
 

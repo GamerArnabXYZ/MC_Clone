@@ -1,5 +1,5 @@
 # Web Build Workflow - Emscripten (WebAssembly)
-# Builds the game for web browsers with legacy device support
+# Builds the game for web browsers using Raylib + Emscripten
 
 name: Web Build
 
@@ -18,45 +18,91 @@ env:
 jobs:
   build-web:
     runs-on: ubuntu-latest
+    # Use emscripten container - emsdk already activated inside
     container:
-      image: emscripten/emsdk:3.1.31
+      image: emscripten/emsdk:3.1.64
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Emscripten
+      - name: Verify Emscripten
         run: |
-          emsdk activate
-          . $EMSDK_ENV
           emcc --version
+          echo "EMSDK=$EMSDK"
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
-          apt-get update && apt-get install -y libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl-dev
+          apt-get update -qq
+          apt-get install -y --no-install-recommends \
+            make cmake git ca-certificates
 
-      - name: Clone and Build Raylib for Web
+      - name: Clone Raylib
         run: |
-          . $EMSDK_ENV
-          git clone --depth 1 --branch ${{ env.raylib_version }} https://github.com/raysan5/raylib.git
+          git clone --depth 1 --branch ${{ env.raylib_version }} \
+            https://github.com/raysan5/raylib.git raylib
+
+      - name: Build Raylib for Web (WASM)
+        run: |
           cd raylib/src
+          # PLATFORM=PLATFORM_WEB is required - without it you get desktop raylib
+          emmake make PLATFORM=PLATFORM_WEB \
+            RAYLIB_LIBTYPE=STATIC \
+            RAYLIB_MODULE_AUDIO=FALSE \
+            -j$(nproc) 2>&1
+          ls -la libraylib.a
+          echo "Raylib WASM build OK"
 
-          # Build raylib for web (creates libraylib.a)
-          emmake make RAYLIB_LIBTYPE=STATIC
-
-          # Verify the library was built
-          ls -la *.a || ls -la
-
-      - name: Setup build directory
+      - name: Prepare build directory
         run: |
-          mkdir -p build-web
-          cp -r assets build-web/
+          mkdir -p build-web/assets/textures
+          # Copy assets if present (textures etc)
+          [ -d assets ] && cp -r assets/. build-web/assets/ || true
+          cp -r src     build-web/
+          cp -r include build-web/
+
+      - name: Build VoxelCraft WASM
+        run: |
+          cd build-web
+
+          # NOTE on flags:
+          # - NO MODULARIZE: Raylib's main loop uses emscripten_set_main_loop,
+          #   which is incompatible with MODULARIZE=1 (hangs at startup).
+          # - ASYNCIFY is NOT needed because Raylib uses the browser's
+          #   requestAnimationFrame loop properly via PLATFORM_WEB.
+          # - USE_WEBGL2=1 for modern WebGL features
+          # - ALLOW_MEMORY_GROWTH for dynamic allocation
+          # - --preload-file embeds assets into the WASM bundle
+
+          emcc src/main.c src/input.c src/render.c src/world.c \
+            -o voxelcraft.js \
+            -s WASM=1 \
+            -s USE_WEBGL2=1 \
+            -s FULL_ES3=1 \
+            -s ALLOW_MEMORY_GROWTH=1 \
+            -s MAXIMUM_MEMORY=268435456 \
+            -s INITIAL_MEMORY=33554432 \
+            -s STACK_SIZE=4194304 \
+            -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap']" \
+            -s NO_EXIT_RUNTIME=1 \
+            -s USE_PTHREADS=0 \
+            -s FORCE_FILESYSTEM=1 \
+            --preload-file assets \
+            -O2 \
+            -Iinclude \
+            -I../raylib/src \
+            ../raylib/src/libraylib.a \
+            -lm \
+            -DPLATFORM_WEB
+          
+          ls -lh voxelcraft.*
+          echo "WASM build OK"
 
       - name: Create HTML shell
         run: |
           cat > build-web/index.html << 'EOF'
           <!DOCTYPE html>
-          <html>
+          <html lang="en">
           <head>
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -66,116 +112,128 @@ jobs:
                   body {
                       background: #1a1a2e;
                       display: flex;
+                      flex-direction: column;
                       justify-content: center;
                       align-items: center;
                       height: 100vh;
                       overflow: hidden;
                       font-family: 'Segoe UI', Arial, sans-serif;
-                  }
-                  #container {
-                      text-align: center;
                       color: #eee;
+                  }
+                  #status {
+                      font-size: 18px;
+                      margin-bottom: 16px;
+                      min-height: 24px;
+                      color: #aef;
+                  }
+                  #progress-bar {
+                      width: 400px;
+                      max-width: 90vw;
+                      height: 6px;
+                      background: #333;
+                      border-radius: 3px;
+                      margin-bottom: 16px;
+                      overflow: hidden;
+                  }
+                  #progress-fill {
+                      height: 100%;
+                      width: 0%;
+                      background: linear-gradient(90deg, #4af, #48f);
+                      border-radius: 3px;
+                      transition: width 0.2s ease;
+                  }
+                  #error {
+                      color: #f66;
+                      display: none;
+                      padding: 20px;
+                      text-align: center;
+                      max-width: 500px;
                   }
                   canvas {
                       display: block;
                       max-width: 100%;
                       max-height: 100vh;
-                      background: #000;
-                  }
-                  #loading {
-                      font-size: 24px;
-                      margin: 20px;
-                      animation: pulse 1.5s infinite;
-                  }
-                  @keyframes pulse {
-                      0%, 100% { opacity: 1; }
-                      50% { opacity: 0.5; }
-                  }
-                  #error {
-                      color: #ff6b6b;
-                      display: none;
-                      padding: 20px;
+                      image-rendering: pixelated;
                   }
               </style>
           </head>
           <body>
-              <div id="container">
-                  <div id="loading">Loading VoxelCraft...</div>
-                  <div id="error">WebGL not supported on this device</div>
-                  <canvas id="canvas"></canvas>
+              <div id="status">Loading VoxelCraft...</div>
+              <div id="progress-bar"><div id="progress-fill"></div></div>
+              <div id="error">
+                  <strong>WebGL2 not supported.</strong><br>
+                  Please use a modern browser (Chrome, Firefox, Edge).
               </div>
+              <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+
               <script>
-                  var Module = {
-                      canvas: (function() {
-                          var canvas = document.getElementById('canvas');
-                          canvas.width = Math.min(window.innerWidth, 1280);
-                          canvas.height = Math.min(window.innerHeight, 720);
-                          return canvas;
-                      })(),
-                      setStatus: function(text) {
-                          var loading = document.getElementById('loading');
-                          if (loading) loading.textContent = text || 'Loaded';
-                      },
-                      onRuntimeInitialized: function() {
-                          var loading = document.getElementById('loading');
-                          if (loading) loading.style.display = 'none';
-                          console.log('VoxelCraft loaded successfully');
-                      },
-                      onAbort: function() {
-                          document.getElementById('loading').style.display = 'none';
+                  // Check WebGL2 support early
+                  (function() {
+                      var testCanvas = document.createElement('canvas');
+                      if (!testCanvas.getContext('webgl2')) {
+                          document.getElementById('status').style.display = 'none';
+                          document.getElementById('progress-bar').style.display = 'none';
                           document.getElementById('error').style.display = 'block';
                       }
+                  })();
+
+                  var statusEl = document.getElementById('status');
+                  var fillEl   = document.getElementById('progress-fill');
+
+                  var Module = {
+                      canvas: document.getElementById('canvas'),
+
+                      // Called by Emscripten for loading status
+                      setStatus: function(text) {
+                          if (!text) {
+                              statusEl.style.display = 'none';
+                              document.getElementById('progress-bar').style.display = 'none';
+                              return;
+                          }
+                          statusEl.textContent = text;
+                          // Parse "Downloading X/Y" for progress
+                          var match = text.match(/(\d+(\.\d+)?)\/(\d+)/);
+                          if (match) {
+                              var pct = (parseFloat(match[1]) / parseFloat(match[3])) * 100;
+                              fillEl.style.width = pct + '%';
+                          }
+                      },
+
+                      onRuntimeInitialized: function() {
+                          statusEl.style.display = 'none';
+                          document.getElementById('progress-bar').style.display = 'none';
+                          console.log('VoxelCraft runtime ready');
+                      },
+
+                      print:    function(text) { console.log('[VoxelCraft]', text); },
+                      printErr: function(text) { console.error('[VoxelCraft]', text); }
+                  };
+
+                  window.onerror = function(msg, src, line, col, err) {
+                      statusEl.style.display = 'none';
+                      document.getElementById('progress-bar').style.display = 'none';
+                      document.getElementById('error').style.display = 'block';
+                      document.getElementById('error').innerHTML =
+                          '<strong>Runtime Error:</strong><br>' + msg;
                   };
               </script>
               <script src="voxelcraft.js"></script>
           </body>
           </html>
           EOF
+          echo "HTML shell created"
 
-      - name: Build VoxelCraft with Emscripten
-        run: |
-          . $EMSDK_ENV
-
-          # Copy source files to build-web
-          cp -r src build-web/
-          cp -r include build-web/
-
-          cd build-web
-
-          # Compile with raylib
-          emcc src/*.c \
-            -o voxelcraft.js \
-            -s WASM=1 \
-            -s USE_WEBGL2=1 \
-            -s ALLOW_MEMORY_GROWTH=1 \
-            -s MAXIMUM_MEMORY=268435456 \
-            -s ASYNCIFY=1 \
-            -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap','setValue','getValue']" \
-            -s EXPORTED_FUNCTIONS="['_free', '_malloc']" \
-            -s INITIAL_MEMORY=33554432 \
-            -s STACK_SIZE=4194304 \
-            -s MODULARIZE=1 \
-            -s EXPORT_NAME='VoxelCraftModule' \
-            -s STRICT=1 \
-            -s NO_EXIT_RUNTIME=1 \
-            -s IGNORE_MISSING_MAIN=0 \
-            -s USE_PTHREADS=0 \
-            -O2 \
-            -Iinclude \
-            -I../raylib/src \
-            ../raylib/src/libraylib.a \
-            -lm \
-            -ldl
-
-          ls -la
-
-      - name: Create output structure
+      - name: Create dist output
         run: |
           mkdir -p dist
-          cp -r build-web/* dist/
-          ls -la dist/
+          cp build-web/voxelcraft.js   dist/
+          cp build-web/voxelcraft.wasm dist/
+          cp build-web/index.html      dist/
+          # Copy data file if assets were preloaded
+          [ -f build-web/voxelcraft.data ] && cp build-web/voxelcraft.data dist/ || true
+          ls -lh dist/
 
-      - name: Upload Web Build
+      - name: Upload Web Build artifact
         uses: actions/upload-artifact@v4
         with:
           name: web-build
@@ -185,9 +243,9 @@ jobs:
       - name: Create downloadable zip
         run: |
           cd dist && zip -r ../voxelcraft-web.zip . && cd ..
-          ls -la voxelcraft-web.zip
+          ls -lh voxelcraft-web.zip
 
-      - name: Upload Web Package
+      - name: Upload Web Package zip
         uses: actions/upload-artifact@v4
         with:
           name: voxelcraft-web-package
@@ -209,9 +267,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Download Web Build
         uses: actions/download-artifact@v4
         with:

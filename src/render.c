@@ -164,7 +164,7 @@ void LoadBlockTextures(void) {
     const char* textureNames[BLOCK_COUNT] = {
         "air.png", "grass.png", "dirt.png", "stone.png", "wood.png",
         "leaves.png", "sand.png", "water.png", "brick.png", "glass.png",
-        "wool.png", "cobble.png", "plank.png", "slab.png", "coal.png", "coal.png"
+        "wool.png", "cobble.png", "plank.png", "slab.png", "coal.png"
     };
 
     for (int i = 0; i < BLOCK_COUNT; i++) {
@@ -321,7 +321,7 @@ void DrawInventoryBar(void) {
     const char* blockNames[] = {
         "Air", "Grass", "Dirt", "Stone", "Wood", "Leaves",
         "Sand", "Water", "Brick", "Glass", "Wool", "Cobble",
-        "Plank", "Slab", "Coal", "Coal"
+        "Plank", "Slab", "Coal"
     };
     const char* selectedName = blockNames[selectedBlock];
 

@@ -85,22 +85,12 @@ void UpdatePCInput(void) {
     g_inputState.moveForward = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
     g_inputState.moveBackward = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
     g_inputState.moveLeft = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
-    g_inputState.moveRight = IsKeyDown(KEY_D);
+    g_inputState.moveRight = IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
     g_inputState.jump = IsKeyDown(KEY_SPACE);
     g_inputState.sprint = IsKeyDown(KEY_LEFT_SHIFT);
 
-    // Mouse movement
-    Vector2 mousePos = GetMousePosition();
-    static Vector2 lastMousePos = {0, 0};
-
-    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
-        g_inputState.mouseDelta.x = mousePos.x - lastMousePos.x;
-        g_inputState.mouseDelta.y = mousePos.y - lastMousePos.y;
-    } else {
-        g_inputState.mouseDelta = (Vector2){0, 0};
-    }
-
-    lastMousePos = mousePos;
+    // Mouse movement - use Raylib's built-in delta (correct & efficient)
+    g_inputState.mouseDelta = GetMouseDelta();
 
     // ESC to unlock cursor
     if (IsKeyPressed(KEY_ESCAPE)) {
@@ -151,14 +141,17 @@ void UpdateMobileInput(void) {
             };
         }
 
-        // Update right joystick (camera control)
+        // Update right joystick (camera look control)
         if (g_rightTouchId == i) {
             Vector2 delta = Vector2Subtract(touchPos, g_rightTouchStart);
+            // Scale delta for sensitivity - use as per-frame look delta
             g_inputState.mouseDelta = (Vector2){
-                delta.x * 0.1f,
-                delta.y * 0.1f
+                delta.x * 0.5f,
+                delta.y * 0.5f
             };
             g_inputState.rightJoystick = delta;
+            // Update start to current pos so next frame delta is relative
+            g_rightTouchStart = touchPos;
         }
 
         // Jump - tap outside joystick areas
@@ -167,19 +160,21 @@ void UpdateMobileInput(void) {
         }
     }
 
-    // Release touches
+    // Release touches - check if tracked touch IDs are no longer active
+    bool leftStillActive = false;
+    bool rightStillActive = false;
     for (int i = 0; i < touchCount; i++) {
-        if (!IsTouchButtonDown(i)) {
-            if (g_leftTouchId == i) {
-                g_leftTouchId = -1;
-                g_inputState.leftJoystick = (Vector2){0, 0};
-            }
-            if (g_rightTouchId == i) {
-                g_rightTouchId = -1;
-                g_inputState.mouseDelta = (Vector2){0, 0};
-                g_inputState.rightJoystick = (Vector2){0, 0};
-            }
-        }
+        if (i == g_leftTouchId)  leftStillActive  = true;
+        if (i == g_rightTouchId) rightStillActive = true;
+    }
+    if (g_leftTouchId != -1 && !leftStillActive) {
+        g_leftTouchId = -1;
+        g_inputState.leftJoystick = (Vector2){0, 0};
+    }
+    if (g_rightTouchId != -1 && !rightStillActive) {
+        g_rightTouchId = -1;
+        g_inputState.mouseDelta = (Vector2){0, 0};
+        g_inputState.rightJoystick = (Vector2){0, 0};
     }
 }
 

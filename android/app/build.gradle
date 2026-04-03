@@ -15,28 +15,36 @@ android {
 
         externalNativeBuild {
             cmake {
-                arguments "-DANDROID_STL=c++_static"
-                cppFlags "-std=c11"
+                // Use c11 standard (game is pure C, not C++)
+                cFlags "-std=c11 -Wall -Wno-unused-function"
+                arguments "-DANDROID_STL=c++_static",
+                          "-DANDROID_PLATFORM=android-21",
+                          "-DANDROID_ARM_NEON=TRUE"
             }
         }
 
         ndk {
+            // Build for 64-bit ARM (primary) and 32-bit ARM (fallback)
             abiFilters 'arm64-v8a', 'armeabi-v7a'
         }
+    }
 
-        sourceSets {
-            main {
-                assets.srcDirs = ['assets']
-            }
+    sourceSets {
+        main {
+            // Assets folder for textures etc.
+            assets.srcDirs = ['src/main/assets']
+            jniLibs.srcDirs = ['src/main/jniLibs']
         }
     }
 
     buildTypes {
         release {
             minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
             minifyEnabled false
+            debuggable true
         }
     }
 
