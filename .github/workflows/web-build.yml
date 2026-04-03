@@ -136,12 +136,14 @@ jobs:
         run: |
           . $EMSDK_ENV
 
-          # Get absolute path
-          WORKSPACE=${{ github.workspace }}
+          # Copy source files to build-web
+          cp -r src build-web/
+          cp -r include build-web/
+
           cd build-web
 
-          # Compile with raylib from parent directory
-          emcc $WORKSPACE/src/*.c \
+          # Compile with raylib
+          emcc src/*.c \
             -o voxelcraft.js \
             -s WASM=1 \
             -s USE_WEBGL2=1 \
@@ -159,9 +161,9 @@ jobs:
             -s IGNORE_MISSING_MAIN=0 \
             -s USE_PTHREADS=0 \
             -O2 \
-            -I$WORKSPACE/include \
-            -I$WORKSPACE/raylib/src \
-            $WORKSPACE/raylib/src/libraylib.a \
+            -Iinclude \
+            -I../raylib/src \
+            ../raylib/src/libraylib.a \
             -lm \
             -ldl
 
