@@ -17,7 +17,7 @@ android {
             cmake {
                 // Use c11 standard (game is pure C, not C++)
                 cFlags "-std=c11 -Wall -Wno-unused-function -DPLATFORM_ANDROID"
-                arguments "-DANDROID_STL=c++_static",
+                arguments "-DANDROID_STL=c++_shared",
                           "-DANDROID_PLATFORM=android-21",
                           "-DANDROID_ARM_NEON=TRUE"
             }

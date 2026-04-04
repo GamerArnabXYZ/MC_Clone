@@ -42,38 +42,50 @@ jobs:
           git clone --depth 1 --branch ${{ env.raylib_version }} \
             https://github.com/raysan5/raylib.git raylib
 
-      - name: Build Raylib for Web (WASM)
+      - name: Build Raylib for Web (WASM) via CMake
         run: |
-          cd raylib/src
-          # PLATFORM=PLATFORM_WEB is required - without it you get desktop raylib
-          emmake make PLATFORM=PLATFORM_WEB \
-            RAYLIB_LIBTYPE=STATIC \
-            RAYLIB_MODULE_AUDIO=FALSE \
-            -j$(nproc) 2>&1
-          ls -la libraylib.a
+          # Use CMake + Emscripten toolchain - this is the correct way for Raylib 5.0.
+          # `emmake make` can silently fall back to desktop build if env is not
+          # perfectly set up; cmake + toolchain file is explicit and reliable.
+          mkdir -p raylib/build-web
+          cd raylib/build-web
+
+          emcmake cmake .. \
+            -DPLATFORM=Web \
+            -DGRAPHICS=GRAPHICS_API_OPENGL_ES2 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DUSE_AUDIO=OFF \
+            -DSUPPORT_MODULE_RAUDIO=OFF
+
+          emmake make -j$(nproc) 2>&1
+
+          # libraylib.a lands in src/ subdir
+          ls -la raylib/src/libraylib.a || ls -la src/libraylib.a || find . -name "libraylib.a"
           echo "Raylib WASM build OK"
 
       - name: Prepare build directory
         run: |
           mkdir -p build-web/assets/textures
-          # Copy assets if present (textures etc)
           [ -d assets ] && cp -r assets/. build-web/assets/ || true
           cp -r src     build-web/
           cp -r include build-web/
+
+          # Find where libraylib.a actually ended up
+          RAYLIB_A=$(find raylib -name "libraylib.a" | head -1)
+          echo "Found raylib at: $RAYLIB_A"
+          echo "RAYLIB_A=$RAYLIB_A" >> $GITHUB_ENV
+
+          # Also find raylib source headers
+          RAYLIB_SRC=$(dirname $(find raylib -name "raylib.h" | head -1))
+          echo "RAYLIB_SRC=$RAYLIB_SRC" >> $GITHUB_ENV
 
       - name: Build VoxelCraft WASM
         run: |
           cd build-web
 
-          # NOTE on flags:
-          # - NO MODULARIZE: Raylib's main loop uses emscripten_set_main_loop,
-          #   which is incompatible with MODULARIZE=1 (hangs at startup).
-          # - ASYNCIFY is NOT needed because Raylib uses the browser's
-          #   requestAnimationFrame loop properly via PLATFORM_WEB.
-          # - USE_WEBGL2=1 for modern WebGL features
-          # - ALLOW_MEMORY_GROWTH for dynamic allocation
-          # - --preload-file embeds assets into the WASM bundle
-
+          # Use emcc directly with correct raylib paths
+          # Raylib PLATFORM_WEB provides its own GLFW stubs via USE_GLFW=3
           emcc src/main.c src/input.c src/render.c src/world.c \
             -o voxelcraft.js \
             -s WASM=1 \
@@ -87,14 +99,15 @@ jobs:
             -s NO_EXIT_RUNTIME=1 \
             -s USE_PTHREADS=0 \
             -s FORCE_FILESYSTEM=1 \
+            -s USE_GLFW=3 \
             --preload-file assets \
             -O2 \
             -Iinclude \
-            -I../raylib/src \
-            ../raylib/src/libraylib.a \
+            -I../$RAYLIB_SRC \
+            ../$RAYLIB_A \
             -lm \
             -DPLATFORM_WEB
-          
+
           ls -lh voxelcraft.*
           echo "WASM build OK"
 

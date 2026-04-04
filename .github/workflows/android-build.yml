@@ -95,6 +95,8 @@ jobs:
                ANDROID_API=${{ env.ANDROID_API_LEVEL }} \
                ANDROID_ARCH=arm64 \
                RAYLIB_LIBTYPE=STATIC \
+               SUPPORT_MODULE_RMODELS=FALSE \
+               SUPPORT_MODULE_RAUDIO=FALSE \
                -j$(nproc) 2>&1
 
           ls -la libraylib.a

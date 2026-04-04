@@ -43,6 +43,8 @@ target_include_directories(voxelcraft PRIVATE
 target_compile_definitions(voxelcraft PRIVATE
     PLATFORM_ANDROID
     GRAPHICS_API_OPENGL_ES2
+    SUPPORT_MODULE_RMODELS=0
+    SUPPORT_MODULE_RAUDIO=0
 )
 
 # ── Link libraries ──────────────────────────────────────────────────────────
@@ -54,6 +56,7 @@ if(HAVE_RAYLIB)
         android
         EGL
         GLESv2
+        c                          # explicit libc - resolves stderr/stdout from rmodels.c
     )
 else()
     target_link_libraries(voxelcraft
@@ -62,5 +65,6 @@ else()
         android
         EGL
         GLESv2
+        c
     )
 endif()
