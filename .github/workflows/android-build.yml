@@ -132,29 +132,35 @@ jobs:
           sed -i 's|${CMAKE_CURRENT_SOURCE_DIR}/game_include|${CMAKE_CURRENT_SOURCE_DIR}/game_include\n    ${CMAKE_CURRENT_SOURCE_DIR}/raylib_include|' \
             android/app/src/main/cpp/CMakeLists.txt || true
 
-      - name: Setup Gradle wrapper
-        working-directory: android
-        run: |
-          # Use Gradle wrapper task to pin a specific version.
-          # AGP 8.2.2 requires Gradle 8.2+; 8.9 is stable and compatible.
-          # We do NOT rely on the runner's system Gradle version (currently 9.x).
-          gradle wrapper --gradle-version=8.9 --distribution-type=bin 2>&1
-          chmod +x gradlew
-          ./gradlew --version
-
       - name: Create local.properties for Gradle
         working-directory: android
         run: |
-          # Unambiguously tell Gradle where the SDK is via local.properties.
-          # This avoids the conflict between ANDROID_HOME and the runner's
-          # pre-installed ANDROID_SDK_ROOT environment variable.
+          # Write sdk.dir BEFORE any Gradle invocation.
+          # local.properties takes priority over env vars, so this prevents
+          # the ANDROID_HOME vs ANDROID_SDK_ROOT conflict on GitHub runners.
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           cat local.properties
 
+      - name: Setup Gradle wrapper
+        working-directory: android
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+        run: |
+          # Unset runner's conflicting SDK env var for this step too
+          unset ANDROID_SDK_ROOT
+          # Use system Gradle to generate wrapper pinned to 8.9
+          # (compatible with AGP 8.2.2; runner has Gradle 9.x but wrapper overrides)
+          gradle wrapper --gradle-version=8.9 --distribution-type=bin 2>&1
+          chmod +x gradlew
+          # Verify wrapper version
+          unset ANDROID_SDK_ROOT && ./gradlew --version
+
       - name: Build debug APK
         working-directory: android
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
-          # Unset the runner's SDK root so only local.properties is used
+          # Unset runner's SDK root — sdk.dir in local.properties is the only source
           unset ANDROID_SDK_ROOT
           ./gradlew assembleDebug \
             --no-daemon \
