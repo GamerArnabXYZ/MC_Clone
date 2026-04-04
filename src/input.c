@@ -71,10 +71,19 @@ void UpdateInput(void) {
 
     // Reset frame-specific states
     g_inputState.jump = false;
+    g_inputState.mouseDelta = (Vector2){0, 0};
     g_inputState.cameraButtonPressed = false;
     g_inputState.cameraButtonReleased = false;
 
-    if (g_game.device == DEVICE_PC) {
+    // On web, detect touch dynamically each frame (device may not be known at init)
+#if defined(PLATFORM_WEB)
+    if (GetTouchPointCount() > 0) {
+        g_game.touchDevice = true;
+        g_game.device = DEVICE_MOBILE;
+    }
+#endif
+
+    if (!g_game.touchDevice) {
         UpdatePCInput();
     } else {
         UpdateMobileInput();

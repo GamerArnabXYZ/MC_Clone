@@ -1,5 +1,5 @@
 # Android Build Workflow
-# Builds the game as an Android APK using Raylib + Android NDK
+# Builds VoxelCraft as Android APK using Raylib 5.0 + Android NDK
 
 name: Android Build
 
@@ -33,9 +33,10 @@ jobs:
       - name: Install build tools
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y wget unzip cmake ninja-build make git
+          sudo apt-get install -y wget unzip cmake ninja-build make git binutils
 
-      - name: Setup Android SDK + cmdline-tools
+      # ── Android SDK ──────────────────────────────────────────────────────
+      - name: Setup Android SDK
         run: |
           unset ANDROID_HOME ANDROID_SDK_ROOT
           mkdir -p $HOME/android-sdk/cmdline-tools
@@ -52,7 +53,6 @@ jobs:
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
-          # Unset conflicting var so sdkmanager uses only ANDROID_HOME
           unset ANDROID_SDK_ROOT
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           sdkmanager "platforms;android-${{ env.ANDROID_API_LEVEL }}" "build-tools;34.0.0"
@@ -62,95 +62,86 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
           unset ANDROID_SDK_ROOT
-          # Try stable NDK versions in order of preference
-          NDK_INSTALLED=""
           for ndk_ver in "25.2.9519653" "23.2.8568313" "21.4.7075529"; do
             echo "Trying NDK $ndk_ver..."
             if sdkmanager "ndk;$ndk_ver" 2>/dev/null; then
-              NDK_INSTALLED="$HOME/android-sdk/ndk/$ndk_ver"
-              echo "NDK_HOME=$NDK_INSTALLED" >> $GITHUB_ENV
-              echo "Installed NDK at: $NDK_INSTALLED"
+              echo "NDK_HOME=$HOME/android-sdk/ndk/$ndk_ver" >> $GITHUB_ENV
+              echo "Installed NDK: $ndk_ver"
               break
             fi
           done
-          if [ -z "$NDK_INSTALLED" ]; then
-            echo "ERROR: No NDK version could be installed"
-            exit 1
-          fi
+          [ -n "$NDK_HOME" ] || { echo "No NDK installed"; exit 1; }
 
-      - name: Clone & Build Raylib for Android (arm64-v8a)
-        env:
-          NDK_HOME: ${{ env.NDK_HOME }}
+      # ── Build Raylib for Android via CMake ───────────────────────────────
+      # Using cmake instead of make because cmake properly respects
+      # SUPPORT_MODULE_RMODELS=OFF — the make flag was ignored.
+      - name: Clone Raylib
         run: |
           git clone --depth 1 --branch ${{ env.raylib_version }} \
             https://github.com/raysan5/raylib.git raylib
 
-          cd raylib/src
-
-          # Build raylib as static lib for Android arm64
-          # ANDROID_NDK_HOME, ANDROID_API and ABI must all be set
-          make PLATFORM=PLATFORM_ANDROID \
-               ANDROID_NDK=$NDK_HOME \
-               ANDROID_NDK_HOME=$NDK_HOME \
-               ANDROID_API=${{ env.ANDROID_API_LEVEL }} \
-               ANDROID_ARCH=arm64 \
-               RAYLIB_LIBTYPE=STATIC \
-               RAYLIB_MODULE_MODELS=FALSE \
-               RAYLIB_MODULE_AUDIO=FALSE \
-               -j$(nproc) 2>&1
-
-          ls -la libraylib.a
-
-          # Strip rmodels.o from archive - it references 'stderr' via tinyobj loader
-          # which is not properly linked in Android NDK without full libc++ runtime.
-          # Our game does not use 3D model loading at all.
-          AR=$(find $NDK_HOME -name "aarch64-linux-android-ar" | head -1)
-          if [ -z "$AR" ]; then
-            AR=$(find $NDK_HOME -name "llvm-ar" | head -1)
-          fi
-          echo "Using ar: $AR"
-          $AR d libraylib.a rmodels.o 2>/dev/null || true
-          $AR d libraylib.a raudio.o 2>/dev/null || true
-          echo "Raylib Android build OK (rmodels+raudio stripped)"
-
-      - name: Copy raylib library to Android project
+      - name: Build Raylib for Android (arm64-v8a) via CMake
+        env:
+          NDK_HOME: ${{ env.NDK_HOME }}
         run: |
-          # CMakeLists expects the lib at cpp/libs/libraylib.a
+          mkdir -p raylib/build-android
+          cd raylib/build-android
+
+          cmake .. \
+            -DCMAKE_TOOLCHAIN_FILE=$NDK_HOME/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-${{ env.ANDROID_API_LEVEL }} \
+            -DANDROID_STL=c++_shared \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DPLATFORM=Android \
+            -DGRAPHICS=GRAPHICS_API_OPENGL_ES2 \
+            -DSUPPORT_MODULE_RMODELS=OFF \
+            -DSUPPORT_MODULE_RAUDIO=OFF \
+            -DSUPPORT_MODULE_RTEXT=ON \
+            -DSUPPORT_MODULE_RSHAPES=ON \
+            -DSUPPORT_MODULE_RTEXTURES=ON
+
+          cmake --build . --config Release -j$(nproc) 2>&1
+
+          # Find the built library
+          find . -name "libraylib.a" | head -5
+          echo "Raylib Android cmake build OK"
+
+      - name: Copy Raylib to Android project
+        env:
+          NDK_HOME: ${{ env.NDK_HOME }}
+        run: |
+          RAYLIB_A=$(find raylib/build-android -name "libraylib.a" | head -1)
+          echo "Found: $RAYLIB_A"
+
           mkdir -p android/app/src/main/cpp/libs
-          cp raylib/src/libraylib.a android/app/src/main/cpp/libs/
-          # Also copy raylib headers
+          cp "$RAYLIB_A" android/app/src/main/cpp/libs/libraylib.a
+
           mkdir -p android/app/src/main/cpp/raylib_include
           cp raylib/src/raylib.h  android/app/src/main/cpp/raylib_include/
           cp raylib/src/raymath.h android/app/src/main/cpp/raylib_include/ 2>/dev/null || true
           cp raylib/src/rlgl.h    android/app/src/main/cpp/raylib_include/ 2>/dev/null || true
 
-      - name: Copy game source files into Android project
+          ls -lh android/app/src/main/cpp/libs/libraylib.a
+
+      # ── Copy game sources ────────────────────────────────────────────────
+      - name: Copy game sources into Android project
         run: |
           mkdir -p android/app/src/main/cpp/game_src
           mkdir -p android/app/src/main/cpp/game_include
-          # main game sources (exclude android stub)
           cp src/input.c  android/app/src/main/cpp/game_src/
           cp src/render.c android/app/src/main/cpp/game_src/
           cp src/world.c  android/app/src/main/cpp/game_src/
           cp src/main.c   android/app/src/main/cpp/
-          # headers
           cp include/*.h  android/app/src/main/cpp/game_include/
-          # assets
           mkdir -p android/app/src/main/assets/textures
           [ -d assets/textures ] && cp -r assets/textures/. android/app/src/main/assets/textures/ || true
 
-      - name: Update CMakeLists to include raylib headers
-        run: |
-          # Patch CMakeLists to also include the copied raylib headers
-          sed -i 's|${CMAKE_CURRENT_SOURCE_DIR}/game_include|${CMAKE_CURRENT_SOURCE_DIR}/game_include\n    ${CMAKE_CURRENT_SOURCE_DIR}/raylib_include|' \
-            android/app/src/main/cpp/CMakeLists.txt || true
-
-      - name: Create local.properties for Gradle
+      # ── Gradle build ─────────────────────────────────────────────────────
+      - name: Create local.properties
         working-directory: android
         run: |
-          # Write sdk.dir BEFORE any Gradle invocation.
-          # local.properties takes priority over env vars, so this prevents
-          # the ANDROID_HOME vs ANDROID_SDK_ROOT conflict on GitHub runners.
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           cat local.properties
 
@@ -159,21 +150,15 @@ jobs:
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
-          # Unset runner's conflicting SDK env var for this step too
           unset ANDROID_SDK_ROOT
-          # Use system Gradle to generate wrapper pinned to 8.9
-          # (compatible with AGP 8.2.2; runner has Gradle 9.x but wrapper overrides)
           gradle wrapper --gradle-version=8.9 --distribution-type=bin 2>&1
           chmod +x gradlew
-          # Verify wrapper version
-          unset ANDROID_SDK_ROOT && ./gradlew --version
 
       - name: Build debug APK
         working-directory: android
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
-          # Unset runner's SDK root — sdk.dir in local.properties is the only source
           unset ANDROID_SDK_ROOT
           ./gradlew assembleDebug \
             --no-daemon \
@@ -181,15 +166,14 @@ jobs:
             --stacktrace \
             2>&1
 
-      - name: Verify APK output
+      - name: Verify APK
         run: |
-          APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
-          if [ -f "$APK_PATH" ]; then
-            ls -lh "$APK_PATH"
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          if [ -f "$APK" ]; then
+            ls -lh "$APK"
             echo "APK built successfully!"
           else
-            echo "APK not found at expected path"
-            find android/app/build -name "*.apk" 2>/dev/null || echo "No APK found anywhere"
+            find android/app/build -name "*.apk" 2>/dev/null || echo "No APK found"
             exit 1
           fi
 
@@ -201,7 +185,7 @@ jobs:
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
 
-      - name: Upload Android source package
+      - name: Upload Android source
         uses: actions/upload-artifact@v4
         with:
           name: voxelcraft-android-source
