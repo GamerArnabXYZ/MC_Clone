@@ -95,12 +95,23 @@ jobs:
                ANDROID_API=${{ env.ANDROID_API_LEVEL }} \
                ANDROID_ARCH=arm64 \
                RAYLIB_LIBTYPE=STATIC \
-               SUPPORT_MODULE_RMODELS=FALSE \
-               SUPPORT_MODULE_RAUDIO=FALSE \
+               RAYLIB_MODULE_MODELS=FALSE \
+               RAYLIB_MODULE_AUDIO=FALSE \
                -j$(nproc) 2>&1
 
           ls -la libraylib.a
-          echo "Raylib Android build OK"
+
+          # Strip rmodels.o from archive - it references 'stderr' via tinyobj loader
+          # which is not properly linked in Android NDK without full libc++ runtime.
+          # Our game does not use 3D model loading at all.
+          AR=$(find $NDK_HOME -name "aarch64-linux-android-ar" | head -1)
+          if [ -z "$AR" ]; then
+            AR=$(find $NDK_HOME -name "llvm-ar" | head -1)
+          fi
+          echo "Using ar: $AR"
+          $AR d libraylib.a rmodels.o 2>/dev/null || true
+          $AR d libraylib.a raudio.o 2>/dev/null || true
+          echo "Raylib Android build OK (rmodels+raudio stripped)"
 
       - name: Copy raylib library to Android project
         run: |

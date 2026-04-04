@@ -55,8 +55,9 @@ jobs:
             -DGRAPHICS=GRAPHICS_API_OPENGL_ES2 \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_SHARED_LIBS=OFF \
-            -DUSE_AUDIO=OFF \
-            -DSUPPORT_MODULE_RAUDIO=OFF
+            -DWITH_PIC=ON \
+            -DSUPPORT_MODULE_RAUDIO=OFF \
+            -DSUPPORT_MODULE_RMODELS=OFF
 
           emmake make -j$(nproc) 2>&1
 
@@ -93,15 +94,17 @@ jobs:
             -s FULL_ES3=1 \
             -s ALLOW_MEMORY_GROWTH=1 \
             -s MAXIMUM_MEMORY=268435456 \
-            -s INITIAL_MEMORY=33554432 \
+            -s INITIAL_MEMORY=67108864 \
             -s STACK_SIZE=4194304 \
             -s EXPORTED_RUNTIME_METHODS="['ccall','cwrap']" \
             -s NO_EXIT_RUNTIME=1 \
             -s USE_PTHREADS=0 \
             -s FORCE_FILESYSTEM=1 \
             -s USE_GLFW=3 \
+            -s ASYNCIFY=1 \
+            -s ASYNCIFY_STACK_SIZE=65536 \
             --preload-file assets \
-            -O2 \
+            -O1 \
             -Iinclude \
             -I../$RAYLIB_SRC \
             ../$RAYLIB_A \
