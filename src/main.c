@@ -27,12 +27,18 @@ void InitGame(void) {
     SetExitKey(KEY_ESCAPE);
 
     // Detect device type
-    g_game.touchDevice = IsMobile();
+    // Detect touch device at compile time (CI sets -DPLATFORM_ANDROID / -DPLATFORM_WEB)
+    // On desktop, start as PC mode; touch will be re-detected in input.c if needed
+#if defined(PLATFORM_ANDROID) || defined(PLATFORM_WEB)
+    g_game.touchDevice = true;
+#else
+    g_game.touchDevice = false;
+#endif
     g_game.device = g_game.touchDevice ? DEVICE_MOBILE : DEVICE_PC;
 
     // Initialize game state
     g_game.state = STATE_HOME;
-    g_game.cameraMode = CAMERA_FIRST_PERSON;
+    g_game.cameraMode = VC_FIRST_PERSON;
     g_game.selectedSlot = 0;
     g_game.texturesLoaded = false;
     g_game.leftJoystick = (Vector2){0, 0};
@@ -112,7 +118,7 @@ void UpdatePlaying(void) {
     }
 
     UpdatePlayer(&input);
-    UpdateCamera();
+    UpdateGameCamera();
     UpdateWorld();
 
     // Handle inventory selection (number keys 1-9)
@@ -204,7 +210,7 @@ void UpdatePlayer(InputState* input) {
     g_game.player.position = newPos;
 
     // Camera rotation - PC with locked cursor
-    if (!g_game.touchDevice && g_game.cameraMode == CAMERA_FIRST_PERSON && g_cursorLocked) {
+    if (!g_game.touchDevice && g_game.cameraMode == VC_FIRST_PERSON && g_cursorLocked) {
         g_game.player.yaw += input->mouseDelta.x * 0.003f;
         g_game.player.pitch -= input->mouseDelta.y * 0.003f;
 
@@ -222,9 +228,9 @@ void UpdatePlayer(InputState* input) {
     }
 }
 
-void UpdateCamera(void) {
+void UpdateGameCamera(void) {
     switch (g_game.cameraMode) {
-        case CAMERA_FIRST_PERSON: {
+        case VC_FIRST_PERSON: {
             Vector3 offset = (Vector3){
                 sinf(g_game.player.yaw) * cosf(g_game.player.pitch) * 0.5f,
                 sinf(g_game.player.pitch) * 0.5f + 1.6f,
@@ -245,7 +251,7 @@ void UpdateCamera(void) {
             }
             break;
         }
-        case CAMERA_THIRD_PERSON: {
+        case VC_THIRD_PERSON: {
             float dist = 8.0f;
             Vector3 offset = (Vector3){
                 sinf(g_game.player.yaw) * dist, 4.0f, cosf(g_game.player.yaw) * dist
@@ -259,7 +265,7 @@ void UpdateCamera(void) {
             }
             break;
         }
-        case CAMERA_TOP_DOWN: {
+        case VC_TOP_DOWN: {
             g_game.camera.position = (Vector3){
                 g_game.player.position.x,
                 g_game.player.position.y + 30.0f,
@@ -280,7 +286,7 @@ void ChangeCameraMode(void) {
     g_game.cameraMode = (g_game.cameraMode + 1) % 3;
 
     if (!g_game.touchDevice) {
-        if (g_game.cameraMode == CAMERA_FIRST_PERSON) {
+        if (g_game.cameraMode == VC_FIRST_PERSON) {
             DisableCursor();
             g_cursorLocked = true;
         } else {
@@ -330,7 +336,7 @@ void DrawPlaying(void) {
         DrawMobileControls();
     }
 
-    DrawFPS();
+    DrawGameFPS();
 }
 
 void DrawPlayerModel(void) {

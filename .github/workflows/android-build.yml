@@ -49,12 +49,19 @@ jobs:
           echo "$HOME/android-sdk/platform-tools"           >> $GITHUB_PATH
 
       - name: Accept licenses & install SDK components
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
+          # Unset conflicting var so sdkmanager uses only ANDROID_HOME
+          unset ANDROID_SDK_ROOT
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           sdkmanager "platforms;android-${{ env.ANDROID_API_LEVEL }}" "build-tools;34.0.0"
 
       - name: Install Android NDK
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
+          unset ANDROID_SDK_ROOT
           # Try stable NDK versions in order of preference
           NDK_INSTALLED=""
           for ndk_ver in "25.2.9519653" "23.2.8568313" "21.4.7075529"; do
@@ -72,6 +79,8 @@ jobs:
           fi
 
       - name: Clone & Build Raylib for Android (arm64-v8a)
+        env:
+          NDK_HOME: ${{ env.NDK_HOME }}
         run: |
           git clone --depth 1 --branch ${{ env.raylib_version }} \
             https://github.com/raysan5/raylib.git raylib
@@ -83,7 +92,7 @@ jobs:
           make PLATFORM=PLATFORM_ANDROID \
                ANDROID_NDK=$NDK_HOME \
                ANDROID_NDK_HOME=$NDK_HOME \
-               ANDROID_API_VERSION=${{ env.ANDROID_API_LEVEL }} \
+               ANDROID_API=${{ env.ANDROID_API_LEVEL }} \
                ANDROID_ARCH=arm64 \
                RAYLIB_LIBTYPE=STATIC \
                -j$(nproc) 2>&1
@@ -126,14 +135,27 @@ jobs:
       - name: Setup Gradle wrapper
         working-directory: android
         run: |
-          gradle wrapper --gradle-version=8.5 2>&1
+          # Use Gradle wrapper task to pin a specific version.
+          # AGP 8.2.2 requires Gradle 8.2+; 8.9 is stable and compatible.
+          # We do NOT rely on the runner's system Gradle version (currently 9.x).
+          gradle wrapper --gradle-version=8.9 --distribution-type=bin 2>&1
           chmod +x gradlew
+          ./gradlew --version
+
+      - name: Create local.properties for Gradle
+        working-directory: android
+        run: |
+          # Unambiguously tell Gradle where the SDK is via local.properties.
+          # This avoids the conflict between ANDROID_HOME and the runner's
+          # pre-installed ANDROID_SDK_ROOT environment variable.
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          cat local.properties
 
       - name: Build debug APK
         working-directory: android
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
+          # Unset the runner's SDK root so only local.properties is used
+          unset ANDROID_SDK_ROOT
           ./gradlew assembleDebug \
             --no-daemon \
             --warning-mode=all \

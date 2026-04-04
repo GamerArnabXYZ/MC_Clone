@@ -329,7 +329,7 @@ void DrawInventoryBar(void) {
     DrawText(selectedName, (SCREEN_WIDTH - textWidth) / 2, startY - 30, 16, WHITE);
 }
 
-void DrawFPS(void) {
+void DrawGameFPS(void) {
     char fpsText[32];
     sprintf(fpsText, "FPS: %d", GetFPS());
     DrawText(fpsText, 10, SCREEN_HEIGHT - 25, 14, (Color){100, 255, 100, 255});

@@ -1,6 +1,6 @@
 /**
  * game.h - Main game header file
- * Voxel Minecraft-styled game in C with Raylib
+ * Voxel Minecraft-styled game in C with Raylib 5.0
  */
 
 #ifndef GAME_H
@@ -10,7 +10,7 @@
 #include "raymath.h"
 #include <stdbool.h>
 
-// Forward declaration for InputState (defined in input.h)
+// Input state (forward declared here, used across modules)
 typedef struct {
     bool moveForward;
     bool moveBackward;
@@ -25,14 +25,14 @@ typedef struct {
     bool cameraButtonReleased;
 } InputState;
 
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 720
-#define WORLD_SIZE 32
-#define CHUNK_SIZE 16
-#define MAX_INVENTORY_SLOTS 9
-#define MAX_BLOCK_TYPES 16
+#define SCREEN_WIDTH       1280
+#define SCREEN_HEIGHT       720
+#define WORLD_SIZE           32
+#define CHUNK_SIZE           16
+#define MAX_INVENTORY_SLOTS   9
+#define MAX_BLOCK_TYPES      16
 
-// Game states
+// ── Game states ────────────────────────────────────────────────────────────
 typedef enum {
     STATE_HOME,
     STATE_PLAYING,
@@ -40,7 +40,7 @@ typedef enum {
     STATE_EXIT
 } GameState;
 
-// Block types
+// ── Block types ────────────────────────────────────────────────────────────
 typedef enum {
     BLOCK_AIR = 0,
     BLOCK_GRASS,
@@ -60,55 +60,57 @@ typedef enum {
     BLOCK_COUNT
 } BlockType;
 
-// Device types
+// ── Device type ────────────────────────────────────────────────────────────
 typedef enum {
     DEVICE_PC,
     DEVICE_MOBILE
 } DeviceType;
 
-// Player structure
+// ── Camera mode ────────────────────────────────────────────────────────────
+// NOTE: Renamed to VCameraMode to avoid conflict with Raylib 5.0's CameraMode enum
+// (which defines CAMERA_FIRST_PERSON, CAMERA_THIRD_PERSON etc. with the same values)
+typedef enum {
+    VC_FIRST_PERSON = 0,
+    VC_THIRD_PERSON,
+    VC_TOP_DOWN
+} VCameraMode;
+
+// ── Player ─────────────────────────────────────────────────────────────────
 typedef struct {
     Vector3 position;
     Vector3 velocity;
-    float yaw;
-    float pitch;
-    bool onGround;
+    float   yaw;
+    float   pitch;
+    bool    onGround;
 } Player;
 
-// Camera mode
-typedef enum {
-    CAMERA_FIRST_PERSON,
-    CAMERA_THIRD_PERSON,
-    CAMERA_TOP_DOWN
-} CameraMode;
-
-// Inventory slot
+// ── Inventory slot ─────────────────────────────────────────────────────────
 typedef struct {
     BlockType blockType;
-    int count;
-    bool selected;
+    int       count;
+    bool      selected;
 } InventorySlot;
 
-// Game structure
+// ── Main game struct ───────────────────────────────────────────────────────
 typedef struct {
-    GameState state;
-    DeviceType device;
-    CameraMode cameraMode;
-    Player player;
+    GameState    state;
+    DeviceType   device;
+    VCameraMode  cameraMode;
+    Player       player;
     InventorySlot inventory[MAX_INVENTORY_SLOTS];
-    int selectedSlot;
-    Camera3D camera;
-    Texture2D blockTextures[MAX_BLOCK_TYPES];
-    bool texturesLoaded;
-    bool touchDevice;
-    Vector2 leftJoystick;
-    Vector2 rightJoystick;
+    int          selectedSlot;
+    Camera3D     camera;
+    Texture2D    blockTextures[MAX_BLOCK_TYPES];
+    bool         texturesLoaded;
+    bool         touchDevice;
+    Vector2      leftJoystick;
+    Vector2      rightJoystick;
 } Game;
 
-// Global game instance
+// Global game instance (defined in main.c)
 extern Game g_game;
 
-// Function declarations
+// ── Function declarations ──────────────────────────────────────────────────
 void InitGame(void);
 void UpdateGame(void);
 void DrawGame(void);
@@ -116,23 +118,22 @@ void CloseGame(void);
 void ChangeCameraMode(void);
 
 // Block texture functions
-void LoadBlockTextures(void);
-void UnloadBlockTextures(void);
+void      LoadBlockTextures(void);
+void      UnloadBlockTextures(void);
 Texture2D GetBlockTexture(BlockType type);
+Image     GenerateProceduralTexture(BlockType type);
 
-// Procedural texture generation
-Image GenerateProceduralTexture(BlockType type);
-
-// Game state functions
+// Game state / update functions
 void UpdateHomeScreen(void);
 void UpdatePlaying(void);
 void UpdatePlayer(InputState* input);
-void UpdateCamera(void);
+void UpdateGameCamera(void);          // renamed from UpdateCamera to avoid Raylib 5.0 clash
 void SelectInventorySlot(int slot);
+
+// Draw functions
 void DrawPlaying(void);
 void DrawPlayerModel(void);
 
-// Additional render functions
-Color GetBlockColor(BlockType type);
+// Note: GetBlockColor(BlockType) is declared in world.h
 
 #endif // GAME_H

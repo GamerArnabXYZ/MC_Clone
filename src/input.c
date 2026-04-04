@@ -184,7 +184,11 @@ InputState GetInputState(void) {
 }
 
 bool IsTouchDevice(void) {
-    return IsMobile();
+#if defined(PLATFORM_ANDROID) || defined(PLATFORM_WEB)
+    return true;
+#else
+    return false;
+#endif
 }
 
 void CloseInput(void) {
