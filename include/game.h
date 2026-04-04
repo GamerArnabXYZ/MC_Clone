@@ -18,6 +18,8 @@ typedef struct {
     bool moveRight;
     bool jump;
     bool sprint;
+    bool placeBlock;    // right click / place button
+    bool breakBlock;    // left click / break button
     Vector2 mouseDelta;
     Vector2 leftJoystick;
     Vector2 rightJoystick;

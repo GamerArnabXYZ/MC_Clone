@@ -110,6 +110,9 @@ void UpdateHomeScreen(void) {
     }
 }
 
+// Global picked block (used for drawing highlight)
+RaycastResult g_pickedBlock;
+
 void UpdatePlaying(void) {
     InputState input = GetInputState();
 
@@ -117,25 +120,73 @@ void UpdatePlaying(void) {
         ChangeCameraMode();
     }
 
+    // Camera toggle via mobile button
+    if (input.cameraButtonPressed) {
+        ChangeCameraMode();
+    }
+
     UpdatePlayer(&input);
     UpdateGameCamera();
     UpdateWorld();
 
-    // Handle inventory selection (number keys 1-9)
-    for (int i = KEY_ONE; i <= KEY_NINE; i++) {
-        if (IsKeyPressed(i)) {
-            SelectInventorySlot(i - KEY_ONE);
+    // ── Raycast block picking (ClassiCube Picking.c style DDA) ──────────
+    // Build camera forward vector from yaw/pitch
+    Vector3 rayDir = {
+        -sinf(g_game.player.yaw) * cosf(g_game.player.pitch),
+        -sinf(g_game.player.pitch),
+        -cosf(g_game.player.yaw) * cosf(g_game.player.pitch)
+    };
+    g_pickedBlock = CastRay(g_game.camera.position, rayDir, 6.0f);
+
+    // ── Block break (left click / Break button) ──────────────────────────
+    bool doBreak = input.breakBlock;
+#if defined(PLATFORM_WEB) || defined(PLATFORM_ANDROID)
+    // Mobile: check break button area touch
+    int tc = GetTouchPointCount();
+    float sw = (float)SCREEN_WIDTH, sh = (float)SCREEN_HEIGHT;
+    Rectangle breakBtn = { sw - 250, sh - 130, 100, 110 };
+    Rectangle placeBtn = { sw - 370, sh - 130, 100, 110 };
+    bool doPlace = input.placeBlock;
+    for (int ti = 0; ti < tc; ti++) {
+        Vector2 tp = GetTouchPosition(ti);
+        if (CheckCollisionPointRec(tp, breakBtn)) doBreak = IsGestureDetected(GESTURE_TAP);
+        if (CheckCollisionPointRec(tp, placeBtn)) doPlace = IsGestureDetected(GESTURE_TAP);
+    }
+    if (doPlace && g_pickedBlock.hit) {
+        int px = g_pickedBlock.placeX;
+        int py = g_pickedBlock.placeY;
+        int pz = g_pickedBlock.placeZ;
+        if (px >= 0 && px < WORLD_SIZE && py > 0 && py < WORLD_SIZE &&
+            pz >= 0 && pz < WORLD_SIZE && GetVoxel(px, py, pz) == BLOCK_AIR) {
+            SetVoxel(px, py, pz, g_game.inventory[g_game.selectedSlot].blockType);
+        }
+    }
+#endif
+    if (doBreak && g_pickedBlock.hit) {
+        SetVoxel(g_pickedBlock.blockX, g_pickedBlock.blockY, g_pickedBlock.blockZ, BLOCK_AIR);
+    }
+
+    // ── Block place (right click) ─────────────────────────────────────────
+    if (input.placeBlock && g_pickedBlock.hit) {
+        int px = g_pickedBlock.placeX;
+        int py = g_pickedBlock.placeY;
+        int pz = g_pickedBlock.placeZ;
+        if (px >= 0 && px < WORLD_SIZE && py > 0 && py < WORLD_SIZE &&
+            pz >= 0 && pz < WORLD_SIZE && GetVoxel(px, py, pz) == BLOCK_AIR) {
+            SetVoxel(px, py, pz, g_game.inventory[g_game.selectedSlot].blockType);
         }
     }
 
-    // Mouse scroll for inventory
+    // ── Inventory selection ───────────────────────────────────────────────
+    for (int i = KEY_ONE; i <= KEY_NINE; i++) {
+        if (IsKeyPressed(i)) SelectInventorySlot(i - KEY_ONE);
+    }
     if (!g_game.touchDevice) {
         float wheel = GetMouseWheelMove();
-        if (wheel > 0) {
+        if (wheel > 0)
             SelectInventorySlot((g_game.selectedSlot - 1 + MAX_INVENTORY_SLOTS) % MAX_INVENTORY_SLOTS);
-        } else if (wheel < 0) {
+        else if (wheel < 0)
             SelectInventorySlot((g_game.selectedSlot + 1) % MAX_INVENTORY_SLOTS);
-        }
     }
 }
 
@@ -326,6 +377,7 @@ void DrawPlaying(void) {
     BeginMode3D(g_game.camera);
     DrawWorld();
     DrawPlayerModel();
+    DrawBlockHighlight(&g_pickedBlock);
     EndMode3D();
 
     DrawPlayingUI();
@@ -335,6 +387,11 @@ void DrawPlaying(void) {
     if (g_game.touchDevice) {
         DrawMobileControls();
     }
+#if defined(PLATFORM_WEB)
+    else {
+        DrawMobileControls(); // Web always shows touch joysticks
+    }
+#endif
 
     DrawGameFPS();
 }

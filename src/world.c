@@ -338,3 +338,116 @@ Color GetBlockColor(BlockType type) {
         default:             return (Color){200, 200, 200, 255};
     }
 }
+
+// ── Block Raycast (adapted from ClassiCube's Picking.c - BSD-3 License) ───
+// https://github.com/ClassiCube/ClassiCube
+// Algorithm: "A Fast Voxel Traversal Algorithm for Ray Tracing"
+// John Amanatides, Andrew Woo
+
+typedef struct {
+    Vector3 pos;          // current grid cell (float)
+    Vector3 rayDir;
+    Vector3 invDir;
+    Vector3 tMax;         // distance to next boundary on each axis
+    Vector3 tDelta;       // distance between boundaries on each axis
+    int     stepX, stepY, stepZ;
+    // result
+    bool    hit;
+    int     hitX, hitY, hitZ;          // block that was hit
+    int     normalX, normalY, normalZ; // face normal (which face was hit)
+    int     placeX, placeY, placeZ;    // adjacent cell for placement
+} RayTracer;
+
+static float SafeInv(float v) {
+    return (v != 0.0f) ? (1.0f / v) : 1e30f;
+}
+
+RaycastResult CastRay(Vector3 origin, Vector3 dir, float reach) {
+    RaycastResult res = {0};
+    res.hit = false;
+
+    RayTracer t;
+    t.rayDir = dir;
+    t.invDir = (Vector3){ SafeInv(dir.x), SafeInv(dir.y), SafeInv(dir.z) };
+
+    // Starting cell
+    int ix = (int)floorf(origin.x);
+    int iy = (int)floorf(origin.y);
+    int iz = (int)floorf(origin.z);
+
+    // Step direction per axis
+    t.stepX = (dir.x >= 0) ? 1 : -1;
+    t.stepY = (dir.y >= 0) ? 1 : -1;
+    t.stepZ = (dir.z >= 0) ? 1 : -1;
+
+    // Distance to first boundary on each axis
+    float boundX = (float)(ix + (t.stepX > 0 ? 1 : 0));
+    float boundY = (float)(iy + (t.stepY > 0 ? 1 : 0));
+    float boundZ = (float)(iz + (t.stepZ > 0 ? 1 : 0));
+
+    t.tMax   = (Vector3){
+        (boundX - origin.x) * t.invDir.x,
+        (boundY - origin.y) * t.invDir.y,
+        (boundZ - origin.z) * t.invDir.z
+    };
+    t.tDelta = (Vector3){
+        fabsf(t.invDir.x),
+        fabsf(t.invDir.y),
+        fabsf(t.invDir.z)
+    };
+
+    int nx = 0, ny = 0, nz = 0; // last step direction (face normal)
+    float reachSq = reach * reach;
+
+    for (int iter = 0; iter < 200; iter++) {
+        // Distance check
+        float dx = (float)ix - origin.x + 0.5f;
+        float dy = (float)iy - origin.y + 0.5f;
+        float dz = (float)iz - origin.z + 0.5f;
+        if (dx*dx + dy*dy + dz*dz > reachSq + 1.5f) break;
+
+        // Check block at current cell
+        int block = GetVoxel(ix, iy, iz);
+        if (block != BLOCK_AIR && block != BLOCK_WATER) {
+            res.hit      = true;
+            res.blockX   = ix;
+            res.blockY   = iy;
+            res.blockZ   = iz;
+            res.normalX  = -nx;
+            res.normalY  = -ny;
+            res.normalZ  = -nz;
+            res.placeX   = ix - nx;
+            res.placeY   = iy - ny;
+            res.placeZ   = iz - nz;
+            return res;
+        }
+
+        // DDA step: advance to next boundary on nearest axis
+        if (t.tMax.x < t.tMax.y && t.tMax.x < t.tMax.z) {
+            nx = t.stepX; ny = 0; nz = 0;
+            ix      += t.stepX;
+            t.tMax.x += t.tDelta.x;
+        } else if (t.tMax.y < t.tMax.z) {
+            nx = 0; ny = t.stepY; nz = 0;
+            iy      += t.stepY;
+            t.tMax.y += t.tDelta.y;
+        } else {
+            nx = 0; ny = 0; nz = t.stepZ;
+            iz      += t.stepZ;
+            t.tMax.z += t.tDelta.z;
+        }
+    }
+    return res;
+}
+
+// Draw selection highlight on targeted block
+void DrawBlockHighlight(RaycastResult* r) {
+    if (!r->hit) return;
+    Vector3 pos = {
+        (float)r->blockX + 0.5f,
+        (float)r->blockY + 0.5f,
+        (float)r->blockZ + 0.5f
+    };
+    DrawCubeWires(pos, 1.02f, 1.02f, 1.02f, (Color){0, 0, 0, 200});
+    DrawCubeWires(pos, 1.04f, 1.04f, 1.04f, (Color){255, 255, 255, 80});
+}

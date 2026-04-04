@@ -49,3 +49,14 @@ void DrawVoxelFace(Vector3 position, int face, BlockType type);
 Color GetBlockColor(BlockType type);
 
 #endif // WORLD_H
+
+// ── Raycast result (ClassiCube Picking.c style) ────────────────────────────
+typedef struct {
+    bool hit;
+    int  blockX, blockY, blockZ;   // hit block coords
+    int  normalX, normalY, normalZ;// face normal
+    int  placeX,  placeY,  placeZ; // adjacent block for placement
+} RaycastResult;
+
+RaycastResult CastRay(Vector3 origin, Vector3 dir, float reach);
+void          DrawBlockHighlight(RaycastResult* r);

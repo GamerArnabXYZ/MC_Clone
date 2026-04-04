@@ -62,15 +62,22 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
           unset ANDROID_SDK_ROOT
+          NDK_INSTALLED=""
           for ndk_ver in "25.2.9519653" "23.2.8568313" "21.4.7075529"; do
             echo "Trying NDK $ndk_ver..."
             if sdkmanager "ndk;$ndk_ver" 2>/dev/null; then
-              echo "NDK_HOME=$HOME/android-sdk/ndk/$ndk_ver" >> $GITHUB_ENV
-              echo "Installed NDK: $ndk_ver"
+              NDK_INSTALLED="$HOME/android-sdk/ndk/$ndk_ver"
+              echo "NDK_HOME=$NDK_INSTALLED" >> $GITHUB_ENV
+              echo "Installed NDK: $ndk_ver at $NDK_INSTALLED"
               break
             fi
           done
-          [ -n "$NDK_HOME" ] || { echo "No NDK installed"; exit 1; }
+          if [ -z "$NDK_INSTALLED" ]; then
+            echo "ERROR: No NDK version could be installed"
+            exit 1
+          fi
+          ls "$NDK_INSTALLED/build/cmake/android.toolchain.cmake" && echo "Toolchain OK"
+
 
       # ── Build Raylib for Android via CMake ───────────────────────────────
       # Using cmake instead of make because cmake properly respects

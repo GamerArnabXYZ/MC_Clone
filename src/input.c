@@ -1,190 +1,244 @@
 /**
  * input.c - Cross-platform input handling
+ * Adapted from ClassiCube's TouchUI.c, Input.c (BSD-3 License)
+ * https://github.com/ClassiCube/ClassiCube
  */
 
 #include "input.h"
 #include "game.h"
 #include "raymath.h"
 #include <stdlib.h>
+#include <math.h>
 
-// Input state
-static InputState g_inputState;
-static MobileUI g_mobileUI;
-static bool g_inputInitialized = false;
+// ── State ─────────────────────────────────────────────────────────────────
+static InputState  g_inputState;
+static MobileUI    g_mobileUI;
+static bool        g_inputInitialized = false;
 
-// Touch tracking
-static int g_leftTouchId = -1;
-static int g_rightTouchId = -1;
-static Vector2 g_leftTouchStart;
-static Vector2 g_rightTouchStart;
+// ── Touch tracking (ClassiCube style multi-touch) ─────────────────────────
+// Each touch slot tracks: which area it belongs to and its start position.
+#define MAX_TOUCHES 10
+typedef enum {
+    TOUCH_NONE   = 0,
+    TOUCH_LEFT   = 1,  // left joystick area
+    TOUCH_RIGHT  = 2,  // right look area
+    TOUCH_JUMP   = 3,  // jump button
+    TOUCH_CAM    = 4   // camera toggle button
+} TouchArea;
 
-void InitInput(void) {
-    g_inputState.moveForward = false;
-    g_inputState.moveBackward = false;
-    g_inputState.moveLeft = false;
-    g_inputState.moveRight = false;
-    g_inputState.jump = false;
-    g_inputState.sprint = false;
-    g_inputState.mouseDelta = (Vector2){0, 0};
-    g_inputState.leftJoystick = (Vector2){0, 0};
-    g_inputState.rightJoystick = (Vector2){0, 0};
-    g_inputState.cameraButtonPressed = false;
-    g_inputState.cameraButtonReleased = false;
+static struct {
+    int      id;        // touch point index (-1 = free)
+    TouchArea area;
+    Vector2  start;
+    Vector2  last;
+} g_touches[MAX_TOUCHES];
 
-    // Setup mobile UI if touch device
-    if (g_game.touchDevice) {
-        g_mobileUI.leftJoystickArea.x = 0;
-        g_mobileUI.leftJoystickArea.y = (float)SCREEN_HEIGHT - 250.0f;
-        g_mobileUI.leftJoystickArea.width = 200.0f;
-        g_mobileUI.leftJoystickArea.height = 200.0f;
+static void Touches_Init(void) {
+    for (int i = 0; i < MAX_TOUCHES; i++) g_touches[i].id = -1;
+}
 
-        g_mobileUI.rightJoystickArea.x = (float)SCREEN_WIDTH - 200.0f;
-        g_mobileUI.rightJoystickArea.y = (float)SCREEN_HEIGHT - 250.0f;
-        g_mobileUI.rightJoystickArea.width = 200.0f;
-        g_mobileUI.rightJoystickArea.height = 200.0f;
+static int Touches_Find(int id) {
+    for (int i = 0; i < MAX_TOUCHES; i++)
+        if (g_touches[i].id == id) return i;
+    return -1;
+}
 
-        g_mobileUI.cameraButtonArea.x = (float)SCREEN_WIDTH - 120.0f;
-        g_mobileUI.cameraButtonArea.y = 50.0f;
-        g_mobileUI.cameraButtonArea.width = 80.0f;
-        g_mobileUI.cameraButtonArea.height = 80.0f;
-
-        g_mobileUI.leftStickCenter = (Vector2){
-            g_mobileUI.leftJoystickArea.x + g_mobileUI.leftJoystickArea.width / 2.0f,
-            g_mobileUI.leftJoystickArea.y + g_mobileUI.leftJoystickArea.height / 2.0f
-        };
-        g_mobileUI.rightStickCenter = (Vector2){
-            g_mobileUI.rightJoystickArea.x + g_mobileUI.rightJoystickArea.width / 2.0f,
-            g_mobileUI.rightJoystickArea.y + g_mobileUI.rightJoystickArea.height / 2.0f
-        };
-
-        g_mobileUI.leftStickRadius = 50.0f;
-        g_mobileUI.rightStickRadius = 50.0f;
+static int Touches_Alloc(int id, TouchArea area, Vector2 pos) {
+    for (int i = 0; i < MAX_TOUCHES; i++) {
+        if (g_touches[i].id != -1) continue;
+        g_touches[i].id    = id;
+        g_touches[i].area  = area;
+        g_touches[i].start = pos;
+        g_touches[i].last  = pos;
+        return i;
     }
+    return -1;
+}
 
-    g_leftTouchId = -1;
-    g_rightTouchId = -1;
+static void Touches_Free(int slot) {
+    g_touches[slot].id   = -1;
+    g_touches[slot].area = TOUCH_NONE;
+}
+
+// ── Mobile UI layout (ClassiCube-inspired positioning) ────────────────────
+static void InitMobileUI(void) {
+    float sw = (float)SCREEN_WIDTH;
+    float sh = (float)SCREEN_HEIGHT;
+
+    // Left thumbstick - bottom left quadrant (ClassiCube: ANCHOR_MIN, ANCHOR_MAX)
+    g_mobileUI.leftJoystickArea  = (Rectangle){ 10, sh - 230, 200, 200 };
+    g_mobileUI.leftStickCenter   = (Vector2){ 10 + 100, sh - 230 + 100 };
+    g_mobileUI.leftStickRadius   = 70.0f;
+
+    // Right look area - right 60% of screen, top 75% height
+    // (ClassiCube: entire right side is look area when not hitting buttons)
+    g_mobileUI.rightJoystickArea  = (Rectangle){ sw * 0.35f, 0, sw * 0.65f, sh * 0.75f };
+    g_mobileUI.rightStickCenter   = (Vector2){ sw * 0.72f, sh * 0.55f };
+    g_mobileUI.rightStickRadius   = 80.0f;
+
+    // Jump button - bottom right corner (ClassiCube: ANCHOR_MAX, ANCHOR_MAX)
+    g_mobileUI.jumpButtonArea     = (Rectangle){ sw - 130, sh - 130, 110, 110 };
+
+    // Camera toggle button - top right
+    g_mobileUI.cameraButtonArea   = (Rectangle){ sw - 100, 10, 88, 60 };
+}
+
+// ── Init / Close ──────────────────────────────────────────────────────────
+void InitInput(void) {
+    g_inputState = (InputState){0};
+    Touches_Init();
+
+#if defined(PLATFORM_WEB) || defined(PLATFORM_ANDROID)
+    g_game.touchDevice = true;
+    g_game.device      = DEVICE_MOBILE;
+#endif
+
+    InitMobileUI();
     g_inputInitialized = true;
 }
 
+void CloseInput(void) {
+    g_inputInitialized = false;
+}
+
+// ── PC Input ───────────────────────────────────────────────────────────────
+void UpdatePCInput(void) {
+    g_inputState.moveForward  = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
+    g_inputState.moveBackward = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
+    g_inputState.moveLeft     = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
+    g_inputState.moveRight    = IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
+    g_inputState.jump         = IsKeyPressed(KEY_SPACE);
+    g_inputState.sprint       = IsKeyDown(KEY_LEFT_SHIFT);
+
+    // Use Raylib's built-in mouse delta (correct, no lag)
+    g_inputState.mouseDelta = GetMouseDelta();
+
+    // Block interaction via mouse buttons
+    g_inputState.placeBlock  = IsMouseButtonPressed(MOUSE_BUTTON_RIGHT);
+    g_inputState.breakBlock  = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+
+    if (IsKeyPressed(KEY_ESCAPE)) EnableCursor();
+}
+
+// ── Mobile Input (ClassiCube-style multi-touch) ───────────────────────────
+void UpdateMobileInput(void) {
+    int touchCount = GetTouchPointCount();
+    bool leftActive  = false;
+    bool rightActive = false;
+
+    // Reset per-frame states
+    g_inputState.mouseDelta   = (Vector2){0, 0};
+    g_inputState.leftJoystick = (Vector2){0, 0};
+    g_inputState.jump         = false;
+    g_inputState.placeBlock   = false;
+    g_inputState.breakBlock   = false;
+
+    // ── Process new/ongoing touches ────────────────────────────────────────
+    for (int i = 0; i < touchCount && i < MAX_TOUCHES; i++) {
+        Vector2 pos = GetTouchPosition(i);
+        int slot    = Touches_Find(i);
+
+        if (slot == -1) {
+            // New touch — classify its area (ClassiCube: PointerDown logic)
+            TouchArea area = TOUCH_NONE;
+
+            if (CheckCollisionPointRec(pos, g_mobileUI.jumpButtonArea)) {
+                area = TOUCH_JUMP;
+                g_inputState.jump = true;
+            } else if (CheckCollisionPointRec(pos, g_mobileUI.cameraButtonArea)) {
+                area = TOUCH_CAM;
+                g_inputState.cameraButtonPressed = true;
+            } else if (CheckCollisionPointRec(pos, g_mobileUI.leftJoystickArea)) {
+                area = TOUCH_LEFT;
+            } else {
+                // Everything else = look/camera area (ClassiCube's right-side behaviour)
+                area = TOUCH_RIGHT;
+            }
+
+            Touches_Alloc(i, area, pos);
+        } else {
+            // Existing touch — update
+            Vector2 delta = Vector2Subtract(pos, g_touches[slot].last);
+
+            if (g_touches[slot].area == TOUCH_LEFT) {
+                // Left thumbstick: normalize relative to initial start
+                Vector2 d = Vector2Subtract(pos, g_touches[slot].start);
+                float   r = g_mobileUI.leftStickRadius;
+                float   len = Vector2Length(d);
+                if (len > r) {
+                    d = Vector2Scale(Vector2Normalize(d), r);
+                }
+                g_inputState.leftJoystick = (Vector2){
+                    d.x / r,
+                    d.y / r
+                };
+                leftActive = true;
+
+            } else if (g_touches[slot].area == TOUCH_RIGHT) {
+                // Look area: delta from last frame = camera rotation
+                // ClassiCube: Camera.Sensitivity scales this
+                g_inputState.mouseDelta = (Vector2){
+                    delta.x * 0.4f,
+                    delta.y * 0.4f
+                };
+                rightActive = true;
+
+            } else if (g_touches[slot].area == TOUCH_JUMP) {
+                g_inputState.jump = true;
+            }
+
+            g_touches[slot].last = pos;
+        }
+    }
+
+    // ── Release finished touches ───────────────────────────────────────────
+    for (int s = 0; s < MAX_TOUCHES; s++) {
+        if (g_touches[s].id == -1) continue;
+        bool still_active = false;
+        for (int i = 0; i < touchCount; i++) {
+            if (i == g_touches[s].id) { still_active = true; break; }
+        }
+        if (!still_active) {
+            if (g_touches[s].area == TOUCH_RIGHT) {
+                g_inputState.mouseDelta = (Vector2){0, 0};
+            }
+            Touches_Free(s);
+        }
+    }
+
+    if (!leftActive)  g_inputState.leftJoystick = (Vector2){0, 0};
+    if (!rightActive) g_inputState.mouseDelta   = (Vector2){0, 0};
+}
+
+// ── UpdateInput ────────────────────────────────────────────────────────────
 void UpdateInput(void) {
     if (!g_inputInitialized) return;
 
-    // Reset frame-specific states
-    g_inputState.jump = false;
-    g_inputState.mouseDelta = (Vector2){0, 0};
+    // Reset per-frame
+    g_inputState.jump               = false;
+    g_inputState.placeBlock         = false;
+    g_inputState.breakBlock         = false;
     g_inputState.cameraButtonPressed = false;
-    g_inputState.cameraButtonReleased = false;
+    g_inputState.mouseDelta         = (Vector2){0, 0};
 
-    // On web, detect touch dynamically each frame (device may not be known at init)
 #if defined(PLATFORM_WEB)
-    if (GetTouchPointCount() > 0) {
-        g_game.touchDevice = true;
-        g_game.device = DEVICE_MOBILE;
-    }
-#endif
-
+    // Web: always use mobile UI (thumb joystick always visible)
+    // Also read keyboard as bonus for desktop browsers
+    g_game.touchDevice = true;
+    g_game.device      = DEVICE_MOBILE;
+    UpdateMobileInput();
+    if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))    g_inputState.moveForward  = true;
+    if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))  g_inputState.moveBackward = true;
+    if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))  g_inputState.moveLeft     = true;
+    if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)) g_inputState.moveRight    = true;
+    if (IsKeyDown(KEY_SPACE))                     g_inputState.jump         = true;
+#else
     if (!g_game.touchDevice) {
         UpdatePCInput();
     } else {
         UpdateMobileInput();
     }
-}
-
-void UpdatePCInput(void) {
-    g_inputState.moveForward = IsKeyDown(KEY_W) || IsKeyDown(KEY_UP);
-    g_inputState.moveBackward = IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN);
-    g_inputState.moveLeft = IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT);
-    g_inputState.moveRight = IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT);
-    g_inputState.jump = IsKeyDown(KEY_SPACE);
-    g_inputState.sprint = IsKeyDown(KEY_LEFT_SHIFT);
-
-    // Mouse movement - use Raylib's built-in delta (correct & efficient)
-    g_inputState.mouseDelta = GetMouseDelta();
-
-    // ESC to unlock cursor
-    if (IsKeyPressed(KEY_ESCAPE)) {
-        EnableCursor();
-    }
-}
-
-void UpdateMobileInput(void) {
-    int touchCount = GetTouchPointCount();
-
-    // Handle touch inputs
-    for (int i = 0; i < touchCount; i++) {
-        Vector2 touchPos = GetTouchPosition(i);
-
-        bool inLeftArea = CheckCollisionPointRec(touchPos, g_mobileUI.leftJoystickArea);
-        bool inRightArea = CheckCollisionPointRec(touchPos, g_mobileUI.rightJoystickArea);
-        bool inCameraArea = CheckCollisionPointRec(touchPos, g_mobileUI.cameraButtonArea);
-
-        // Assign touch to left joystick
-        if (inLeftArea && g_leftTouchId == -1) {
-            g_leftTouchId = i;
-            g_leftTouchStart = touchPos;
-        }
-
-        // Assign touch to right joystick
-        if (inRightArea && g_rightTouchId == -1) {
-            g_rightTouchId = i;
-            g_rightTouchStart = touchPos;
-        }
-
-        // Camera button
-        if (inCameraArea) {
-            g_inputState.cameraButtonPressed = true;
-        }
-
-        // Update left joystick value
-        if (g_leftTouchId == i) {
-            Vector2 delta = Vector2Subtract(touchPos, g_leftTouchStart);
-            float dist = Vector2Length(delta);
-
-            if (dist > g_mobileUI.leftStickRadius) {
-                delta = Vector2Scale(Vector2Normalize(delta), g_mobileUI.leftStickRadius);
-            }
-
-            g_inputState.leftJoystick = (Vector2){
-                delta.x / g_mobileUI.leftStickRadius,
-                delta.y / g_mobileUI.leftStickRadius
-            };
-        }
-
-        // Update right joystick (camera look control)
-        if (g_rightTouchId == i) {
-            Vector2 delta = Vector2Subtract(touchPos, g_rightTouchStart);
-            // Scale delta for sensitivity - use as per-frame look delta
-            g_inputState.mouseDelta = (Vector2){
-                delta.x * 0.5f,
-                delta.y * 0.5f
-            };
-            g_inputState.rightJoystick = delta;
-            // Update start to current pos so next frame delta is relative
-            g_rightTouchStart = touchPos;
-        }
-
-        // Jump - tap outside joystick areas
-        if (!inLeftArea && !inRightArea && !inCameraArea) {
-            g_inputState.jump = true;
-        }
-    }
-
-    // Release touches - check if tracked touch IDs are no longer active
-    bool leftStillActive = false;
-    bool rightStillActive = false;
-    for (int i = 0; i < touchCount; i++) {
-        if (i == g_leftTouchId)  leftStillActive  = true;
-        if (i == g_rightTouchId) rightStillActive = true;
-    }
-    if (g_leftTouchId != -1 && !leftStillActive) {
-        g_leftTouchId = -1;
-        g_inputState.leftJoystick = (Vector2){0, 0};
-    }
-    if (g_rightTouchId != -1 && !rightStillActive) {
-        g_rightTouchId = -1;
-        g_inputState.mouseDelta = (Vector2){0, 0};
-        g_inputState.rightJoystick = (Vector2){0, 0};
-    }
+#endif
 }
 
 InputState GetInputState(void) {
@@ -200,59 +254,83 @@ bool IsTouchDevice(void) {
 #endif
 }
 
-void CloseInput(void) {
-    g_inputInitialized = false;
-}
-
+// ── Draw Mobile Controls (ClassiCube ThumbstickWidget style) ──────────────
 void DrawMobileControls(void) {
-    if (!g_game.touchDevice) return;
-
-    // Left joystick base
+    // Left thumbstick base (ClassiCube: semi-transparent circle)
     DrawCircleV(g_mobileUI.leftStickCenter, g_mobileUI.leftStickRadius,
-                (Color){50, 50, 50, 150});
-    DrawCircleLines((int)g_mobileUI.leftStickCenter.x, (int)g_mobileUI.leftStickCenter.y,
-                   (int)g_mobileUI.leftStickRadius, (Color){100, 100, 100, 200});
+                (Color){30, 30, 30, 140});
+    DrawRing(g_mobileUI.leftStickCenter,
+             g_mobileUI.leftStickRadius - 4, g_mobileUI.leftStickRadius,
+             0, 360, 32, (Color){255, 255, 255, 120});
 
-    // Left joystick knob
-    Vector2 leftKnob = Vector2Add(g_mobileUI.leftStickCenter,
-        Vector2Scale(g_inputState.leftJoystick, g_mobileUI.leftStickRadius));
-    DrawCircleV(leftKnob, 30, (Color){80, 80, 80, 200});
+    // Left thumbstick knob
+    Vector2 knobPos = Vector2Add(g_mobileUI.leftStickCenter,
+        Vector2Scale(g_inputState.leftJoystick, g_mobileUI.leftStickRadius * 0.65f));
+    DrawCircleV(knobPos, 28, (Color){255, 255, 255, 180});
+    DrawCircleV(knobPos, 22, (Color){100, 160, 220, 220});
 
-    // Right joystick base
-    DrawCircleV(g_mobileUI.rightStickCenter, g_mobileUI.rightStickRadius,
-                (Color){50, 50, 50, 150});
-    DrawCircleLines((int)g_mobileUI.rightStickCenter.x, (int)g_mobileUI.rightStickCenter.y,
-                   (int)g_mobileUI.rightStickRadius, (Color){100, 100, 100, 200});
+    // Direction arrows on thumbstick (ClassiCube style)
+    float r = g_mobileUI.leftStickRadius;
+    Vector2 c = g_mobileUI.leftStickCenter;
+    float arrow = 10.0f;
+    // Up arrow
+    DrawTriangle(
+        (Vector2){c.x, c.y - r + 6},
+        (Vector2){c.x - arrow, c.y - r + 6 + arrow * 1.5f},
+        (Vector2){c.x + arrow, c.y - r + 6 + arrow * 1.5f},
+        (Color){255,255,255,160});
+    // Down arrow
+    DrawTriangle(
+        (Vector2){c.x, c.y + r - 6},
+        (Vector2){c.x + arrow, c.y + r - 6 - arrow * 1.5f},
+        (Vector2){c.x - arrow, c.y + r - 6 - arrow * 1.5f},
+        (Color){255,255,255,160});
+    // Left arrow
+    DrawTriangle(
+        (Vector2){c.x - r + 6, c.y},
+        (Vector2){c.x - r + 6 + arrow*1.5f, c.y - arrow},
+        (Vector2){c.x - r + 6 + arrow*1.5f, c.y + arrow},
+        (Color){255,255,255,160});
+    // Right arrow
+    DrawTriangle(
+        (Vector2){c.x + r - 6, c.y},
+        (Vector2){c.x + r - 6 - arrow*1.5f, c.y + arrow},
+        (Vector2){c.x + r - 6 - arrow*1.5f, c.y - arrow},
+        (Color){255,255,255,160});
 
-    // Right joystick knob
-    Vector2 rightKnob = Vector2Add(g_mobileUI.rightStickCenter, g_inputState.rightJoystick);
-    Vector2 delta = Vector2Subtract(rightKnob, g_mobileUI.rightStickCenter);
-    if (Vector2Length(delta) > g_mobileUI.rightStickRadius) {
-        delta = Vector2Scale(Vector2Normalize(delta), g_mobileUI.rightStickRadius);
-        rightKnob = Vector2Add(g_mobileUI.rightStickCenter, delta);
-    }
-    DrawCircleV(rightKnob, 30, (Color){80, 80, 80, 200});
+    // Jump button (ClassiCube: solid rounded rect with label)
+    Rectangle jb = g_mobileUI.jumpButtonArea;
+    DrawRectangleRounded(jb, 0.3f, 8, (Color){60, 120, 220, 200});
+    DrawRectangleRoundedLines(jb, 0.3f, 8, (Color){180, 210, 255, 255});
+    DrawText("JUMP",
+        (int)(jb.x + jb.width/2 - MeasureText("JUMP", 16)/2),
+        (int)(jb.y + jb.height/2 - 8), 16, WHITE);
 
-    // Camera button
-    Color btnColor = g_inputState.cameraButtonPressed ?
-        (Color){100, 100, 255, 255} : (Color){70, 70, 120, 200};
-    DrawRectangleRec(g_mobileUI.cameraButtonArea, btnColor);
-    DrawRectangleLinesEx(g_mobileUI.cameraButtonArea, 3, WHITE);
+    // Camera toggle button (ClassiCube: top right)
+    Rectangle cb = g_mobileUI.cameraButtonArea;
+    Color camCol = g_inputState.cameraButtonPressed ?
+        (Color){100, 180, 255, 240} : (Color){40, 40, 60, 180};
+    DrawRectangleRounded(cb, 0.3f, 8, camCol);
+    DrawRectangleRoundedLines(cb, 0.3f, 8, (Color){200, 200, 255, 200});
+    DrawText("CAM",
+        (int)(cb.x + cb.width/2 - MeasureText("CAM", 13)/2),
+        (int)(cb.y + cb.height/2 - 7), 13, WHITE);
 
-    // Camera icon
-    Vector2 btnCenter = (Vector2){
-        g_mobileUI.cameraButtonArea.x + g_mobileUI.cameraButtonArea.width / 2.0f,
-        g_mobileUI.cameraButtonArea.y + g_mobileUI.cameraButtonArea.height / 2.0f
-    };
-    DrawCircleLines((int)btnCenter.x, (int)btnCenter.y, 20, WHITE);
-    DrawCircleLines((int)btnCenter.x, (int)btnCenter.y, 10, WHITE);
+    // Break button - bottom right, above jump (ClassiCube: Delete button)
+    float sw = (float)SCREEN_WIDTH;
+    float sh = (float)SCREEN_HEIGHT;
+    Rectangle bb = { sw - 250, sh - 130, 100, 110 };
+    DrawRectangleRounded(bb, 0.3f, 8, (Color){200, 60, 60, 180});
+    DrawRectangleRoundedLines(bb, 0.3f, 8, (Color){255, 150, 150, 200});
+    DrawText("BREAK",
+        (int)(bb.x + bb.width/2 - MeasureText("BREAK", 13)/2),
+        (int)(bb.y + bb.height/2 - 7), 13, WHITE);
 
-    // Jump indicator
-    Rectangle jumpArea = {
-        g_mobileUI.leftJoystickArea.x + g_mobileUI.leftJoystickArea.width + 20.0f,
-        g_mobileUI.leftJoystickArea.y + g_mobileUI.leftJoystickArea.height - 80.0f,
-        60, 60
-    };
-    DrawRectangleRec(jumpArea, (Color){80, 80, 120, 180});
-    DrawText("JUMP", (int)(jumpArea.x + 8), (int)(jumpArea.y + 20), 12, WHITE);
+    // Place button - next to break (ClassiCube: Place button)
+    Rectangle pb = { sw - 370, sh - 130, 100, 110 };
+    DrawRectangleRounded(pb, 0.3f, 8, (Color){60, 180, 60, 180});
+    DrawRectangleRoundedLines(pb, 0.3f, 8, (Color){150, 255, 150, 200});
+    DrawText("PLACE",
+        (int)(pb.x + pb.width/2 - MeasureText("PLACE", 13)/2),
+        (int)(pb.y + pb.height/2 - 7), 13, WHITE);
 }
