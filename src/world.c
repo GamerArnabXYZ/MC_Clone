@@ -1,453 +1,326 @@
-/**
- * world.c - Voxel world/chunk management
- */
+#include "World.h"
+#include "Logger.h"
+#include "String_.h"
+#include "Platform.h"
+#include "Event.h"
+#include "Block.h"
+#include "Entity.h"
+#include "MathUtils.h"
+#include "Physics.h"
+#include "Game.h"
+#include "TexturePack.h"
+#include "Window.h"
 
-#include "world.h"
-#include "game.h"
-#include <stdlib.h>
-#include <math.h>
-#include <time.h>
+struct _WorldData World;
+static char nameBuffer[STRING_SIZE];
+/*########################################################################################################################*
+*----------------------------------------------------------World----------------------------------------------------------*
+*#########################################################################################################################*/
+static void GenerateNewUuid(void) {
+	RNGState rnd;
+	int i;
+	Random_SeedFromCurrentTime(&rnd);
 
-// World voxels array
-static int g_worldVoxels[WORLD_SIZE][WORLD_SIZE][WORLD_SIZE];
+	/* seed a bit more randomness for uuid */
+	for (i = 0; i < Game_Username.length; i++) {
+		Random_Next(&rnd, Game_Username.buffer[i] + 3);
+	}
 
-// Noise function for terrain generation (simplified Perlin-like noise)
-static float Noise2D(int x, int z) {
-    int n = x + z * 57;
-    n = (n << 13) ^ n;
-    float noise = (1.0f - ((n * (n * n * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0f);
-    return noise;
+	for (i = 0; i < WORLD_UUID_LEN; i++) {
+		World.Uuid[i] = Random_Next(&rnd, 256);
+	}
+
+	/* Set version and variant bits */
+	World.Uuid[6] &= 0x0F;
+	World.Uuid[6] |= 0x40; /* version 4*/
+	World.Uuid[8] &= 0x3F;
+	World.Uuid[8] |= 0x80; /* variant 2*/
 }
 
-static float SmoothNoise(int x, int z) {
-    float corners = (Noise2D(x-1, z-1) + Noise2D(x+1, z-1) +
-                    Noise2D(x-1, z+1) + Noise2D(x+1, z+1)) / 16.0f;
-    float sides = (Noise2D(x-1, z) + Noise2D(x+1, z) +
-                  Noise2D(x, z-1) + Noise2D(x, z+1)) / 8.0f;
-    float center = Noise2D(x, z) / 4.0f;
+void World_Reset(void) {
+#ifdef EXTENDED_BLOCKS
+	if (World.Blocks != World.Blocks2) Mem_Free(World.Blocks2);
+	World.Blocks2 = NULL;
+	World.IDMask  = 0xFF;
+#endif
+	Mem_Free(World.Blocks);
+	World.Blocks = NULL;
+	String_InitArray(World.Name, nameBuffer);
 
-    return corners + sides + center;
+	World_SetDimensions(0, 0, 0);
+	World.Loaded   = false;
+	World.LastSave = -200;
+	World.Seed     = 0;
+	Env_Reset();
 }
 
-static float InterpolatedNoise(int x, int z) {
-    int intX = x / 16;
-    int intZ = z / 16;
-    float fracX = (float)(x % 16) / 16.0f;
-    float fracZ = (float)(z % 16) / 16.0f;
-
-    float v1 = SmoothNoise(intX, intZ);
-    float v2 = SmoothNoise(intX + 1, intZ);
-    float v3 = SmoothNoise(intX, intZ + 1);
-    float v4 = SmoothNoise(intX + 1, intZ + 1);
-
-    float i1 = v1 * (1.0f - fracX) + v2 * fracX;
-    float i2 = v3 * (1.0f - fracX) + v4 * fracX;
-
-    return i1 * (1.0f - fracZ) + i2 * fracZ;
+void World_NewMap(void) {
+	World_Reset();
+	Event_RaiseVoid(&WorldEvents.NewMap);
 }
 
-// Simple heightmap for terrain
-static int GetTerrainHeight(int x, int z) {
-    float noise = InterpolatedNoise(x, z);
-    return (int)(8.0f + noise * 10.0f);
+void World_SetNewMap(BlockRaw* blocks, int width, int height, int length) {
+	/* TODO: TEMP HACK */
+	if (!blocks) { width = 0; height = 0; length = 0; }
+
+	World_SetDimensions(width, height, length);
+	World.Blocks      = blocks;
+	World.Name.length = 0;
+
+	if (!World.Volume) World.Blocks = NULL;
+#ifdef EXTENDED_BLOCKS
+	/* .cw maps may have set this to a non-NULL when importing */
+	if (!World.Blocks2) {
+		World.Blocks2 = World.Blocks;
+		World.IDMask  = 0xFF;
+	}
+#endif
+
+	if (Env.EdgeHeight == -1)   { Env.EdgeHeight   = height / 2; }
+	if (Env.CloudsHeight == -1) { Env.CloudsHeight = height + 2; }
+
+	GenerateNewUuid();
+	World.Loaded = true;
+	Event_RaiseVoid(&WorldEvents.MapLoaded);
 }
 
-// Initialize world
-void InitWorld(void) {
-    // Seed random for terrain generation
-    srand((unsigned int)time(NULL));
+CC_NOINLINE void World_SetDimensions(int width, int height, int length) {
+	World.Width  = width; World.Height = height; World.Length = length;
+	World.Volume = width * height * length;
 
-    // Clear all voxels
-    for (int x = 0; x < WORLD_SIZE; x++) {
-        for (int y = 0; y < WORLD_SIZE; y++) {
-            for (int z = 0; z < WORLD_SIZE; z++) {
-                g_worldVoxels[x][y][z] = BLOCK_AIR;
-            }
-        }
-    }
+	World.OneY = width * length;
+	World.MaxX = width  - 1;
+	World.MaxY = height - 1;
+	World.MaxZ = length - 1;
 
-    // Generate terrain
-    GenerateTerrain(0, 0);
+	World.ChunksX = (width  + CHUNK_MAX) >> CHUNK_SHIFT;
+	World.ChunksY = (height + CHUNK_MAX) >> CHUNK_SHIFT;
+	World.ChunksZ = (length + CHUNK_MAX) >> CHUNK_SHIFT;
+
+	World.ChunksCount = World.ChunksX * World.ChunksY * World.ChunksZ;
 }
 
-// Generate terrain for a region
-void GenerateTerrain(int chunkX, int chunkZ) {
-    int baseX = chunkX * CHUNK_SIZE;
-    int baseZ = chunkZ * CHUNK_SIZE;
+#ifdef EXTENDED_BLOCKS
+void World_SetMapUpper(BlockRaw* blocks) {
+	World.Blocks2 = blocks;
+	World.IDMask  = 0x3FF;
+}
+#endif
 
-    for (int x = 0; x < WORLD_SIZE; x++) {
-        for (int z = 0; z < WORLD_SIZE; z++) {
-            int worldX = baseX + x;
-            int worldZ = baseZ + z;
-
-            // Skip if out of world bounds
-            if (worldX < 0 || worldX >= WORLD_SIZE || worldZ < 0 || worldZ >= WORLD_SIZE) continue;
-
-            int height = GetTerrainHeight(worldX, worldZ);
-
-            // Clamp height to valid range
-            if (height < 1) height = 1;
-            if (height >= WORLD_SIZE - 1) height = WORLD_SIZE - 2;
-
-            for (int y = 0; y < WORLD_SIZE; y++) {
-                if (y == 0) {
-                    // Bedrock at bottom
-                    g_worldVoxels[worldX][y][worldZ] = BLOCK_STONE;
-                } else if (y < height - 3) {
-                    // Underground - stone
-                    g_worldVoxels[worldX][y][worldZ] = BLOCK_STONE;
-                } else if (y < height) {
-                    // Dirt layer
-                    g_worldVoxels[worldX][y][worldZ] = BLOCK_DIRT;
-                } else if (y == height) {
-                    // Surface - grass
-                    g_worldVoxels[worldX][y][worldZ] = BLOCK_GRASS;
-                } else if (y <= 4) {
-                    // Water level
-                    g_worldVoxels[worldX][y][worldZ] = BLOCK_WATER;
-                } else {
-                    // Above water
-                    g_worldVoxels[worldX][y][worldZ] = BLOCK_AIR;
-                }
-            }
-
-            // Add trees occasionally
-            if (height > 5 && (worldX % 7 == 0) && (worldZ % 9 == 0)) {
-                int treeHeight = 4 + (rand() % 3);
-                int treeBase = height + 1;
-
-                for (int ty = 0; ty < treeHeight; ty++) {
-                    int targetY = treeBase + ty;
-                    if (targetY >= 0 && targetY < WORLD_SIZE) {
-                        g_worldVoxels[worldX][targetY][worldZ] = BLOCK_WOOD;
-                    }
-                }
-                // Leaves
-                for (int dx = -2; dx <= 2; dx++) {
-                    for (int dz = -2; dz <= 2; dz++) {
-                        for (int dy = treeHeight - 2; dy <= treeHeight + 1; dy++) {
-                            int lx = worldX + dx;
-                            int lz = worldZ + dz;
-                            int targetY = treeBase + dy;
-
-                            if (lx >= 0 && lx < WORLD_SIZE &&
-                                lz >= 0 && lz < WORLD_SIZE &&
-                                targetY >= 0 && targetY < WORLD_SIZE) {
-                                if (g_worldVoxels[lx][targetY][lz] == BLOCK_AIR) {
-                                    if (abs(dx) + abs(dz) <= 3) {
-                                        g_worldVoxels[lx][targetY][lz] = BLOCK_LEAVES;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+void World_OutOfMemory(void) {
+	Window_ShowDialog("Out of memory", "Not enough free memory to load the map.\nTry joining a different map.");
+	World_Reset();
 }
 
-// Update world (chunk loading/unloading)
-void UpdateWorld(void) {
-    // Currently static world - can add chunk loading here for larger worlds
+
+#ifdef EXTENDED_BLOCKS
+static CC_NOINLINE void LazyInitUpper(int i, BlockID block) {
+	BlockRaw* data = (BlockRaw*)Mem_TryAllocCleared(World.Volume, 1);
+	if (!data) { World_OutOfMemory(); return; }
+
+	World_SetMapUpper(data);
+	World.Blocks2[i] = (BlockRaw)(block >> 8);
 }
 
-// Get voxel at world coordinates
-int GetVoxel(int x, int y, int z) {
-    if (x < 0 || x >= WORLD_SIZE || y < 0 || y >= WORLD_SIZE || z < 0 || z >= WORLD_SIZE) {
-        return BLOCK_AIR;
-    }
-    return g_worldVoxels[x][y][z];
+void World_SetBlock(int x, int y, int z, BlockID block) {
+	int i = World_Pack(x, y, z);
+	World.Blocks[i] = (BlockRaw)block;
+
+	/* defer allocation of second map array if possible */
+	if (World.Blocks == World.Blocks2) {
+		if (block < 256) return;
+		LazyInitUpper(i, block);
+		return;
+	}
+	World.Blocks2[i] = (BlockRaw)(block >> 8);
+}
+#else
+void World_SetBlock(int x, int y, int z, BlockID block) {
+	World.Blocks[World_Pack(x, y, z)] = block; 
+}
+#endif
+
+BlockID World_GetPhysicsBlock(int x, int y, int z) {
+	if (y < 0 || !World_ContainsXZ(x, z)) return BLOCK_BEDROCK;
+	if (y >= World.Height) return BLOCK_AIR;
+
+	return World_GetBlock(x, y, z);
 }
 
-// Set voxel at world coordinates
-void SetVoxel(int x, int y, int z, int type) {
-    if (x < 0 || x >= WORLD_SIZE || y < 0 || y >= WORLD_SIZE || z < 0 || z >= WORLD_SIZE) {
-        return;
-    }
-    g_worldVoxels[x][y][z] = type;
+BlockID World_SafeGetBlock(int x, int y, int z) {
+	return World_Contains(x, y, z) ? World_GetBlock(x, y, z) : BLOCK_AIR;
 }
 
-// Check if voxel is opaque (for face culling)
-bool IsVoxelOpaque(int x, int y, int z) {
-    int voxel = GetVoxel(x, y, z);
-    return voxel != BLOCK_AIR && voxel != BLOCK_WATER;
+
+/*########################################################################################################################*
+*-------------------------------------------------------Environment-------------------------------------------------------*
+*#########################################################################################################################*/
+#define Env_Set(src, dst, var) \
+if (src != dst) { dst = src; Event_RaiseInt(&WorldEvents.EnvVarChanged, var); }
+
+struct _EnvData Env;
+const char* const Weather_Names[3] = { "Sunny", "Rainy", "Snowy" };
+
+void Env_Reset(void) {
+	Env.EdgeHeight   = -1;
+	Env.SidesOffset  = -2;
+	Env.CloudsHeight = -1;
+
+	Env.EdgeBlock  = BLOCK_STILL_WATER;
+	Env.SidesBlock = BLOCK_BEDROCK;
+
+	Env.CloudsSpeed    = 1.0f;
+	Env.WeatherSpeed   = 1.0f;
+	Env.WeatherFade    = 1.0f;
+	Env.SkyboxHorSpeed = 0.0f;
+	Env.SkyboxVerSpeed = 0.0f;
+
+	Env.ShadowCol = ENV_DEFAULT_SHADOW_COLOR;
+	PackedCol_GetShaded(Env.ShadowCol, &Env.ShadowXSide,
+		&Env.ShadowZSide, &Env.ShadowYMin);
+
+	Env.SunCol = ENV_DEFAULT_SUN_COLOR;
+	PackedCol_GetShaded(Env.SunCol, &Env.SunXSide,
+		&Env.SunZSide, &Env.SunYMin);
+
+	Env.SkyCol       = ENV_DEFAULT_SKY_COLOR;
+	Env.FogCol       = ENV_DEFAULT_FOG_COLOR;
+	Env.CloudsCol    = ENV_DEFAULT_CLOUDS_COLOR;
+	Env.SkyboxCol    = ENV_DEFAULT_SKYBOX_COLOR;
+	Env.LavaLightCol = ENV_DEFAULT_LAVALIGHT_COLOR;
+	Env.LampLightCol = ENV_DEFAULT_LAMPLIGHT_COLOR;
+	Env.Weather   = WEATHER_SUNNY;
+	Env.ExpFog    = false;
 }
 
-// Get block at position (for collision)
-int GetBlockAt(Vector3 pos) {
-    int x = (int)pos.x;
-    int y = (int)pos.y;
-    int z = (int)pos.z;
-    return GetVoxel(x, y, z);
+
+void Env_SetEdgeBlock(BlockID block) {
+	/* some server software wrongly uses this value */
+	if (block == 255 && !Block_IsCustomDefined(255)) block = BLOCK_STILL_WATER; 
+	Env_Set(block, Env.EdgeBlock, ENV_VAR_EDGE_BLOCK);
+}
+void Env_SetSidesBlock(BlockID block) {
+	/* some server software wrongly uses this value */
+	if (block == 255 && !Block_IsCustomDefined(255)) block = BLOCK_BEDROCK;
+	Env_Set(block, Env.SidesBlock, ENV_VAR_SIDES_BLOCK);
 }
 
-// Draw the voxel world
-void DrawWorld(void) {
-    for (int x = 0; x < WORLD_SIZE; x++) {
-        for (int y = 0; y < WORLD_SIZE; y++) {
-            for (int z = 0; z < WORLD_SIZE; z++) {
-                int voxel = g_worldVoxels[x][y][z];
-
-                if (voxel == BLOCK_AIR) continue;
-
-                Vector3 pos = (Vector3){(float)x, (float)y, (float)z};
-
-                // Only draw visible faces (face culling)
-                if (!IsVoxelOpaque(x, y + 1, z)) {
-                    DrawVoxelFace(pos, FACE_TOP, voxel);
-                }
-                if (!IsVoxelOpaque(x, y - 1, z)) {
-                    DrawVoxelFace(pos, FACE_BOTTOM, voxel);
-                }
-                if (!IsVoxelOpaque(x, y, z - 1)) {
-                    DrawVoxelFace(pos, FACE_FRONT, voxel);
-                }
-                if (!IsVoxelOpaque(x, y, z + 1)) {
-                    DrawVoxelFace(pos, FACE_BACK, voxel);
-                }
-                if (!IsVoxelOpaque(x - 1, y, z)) {
-                    DrawVoxelFace(pos, FACE_LEFT, voxel);
-                }
-                if (!IsVoxelOpaque(x + 1, y, z)) {
-                    DrawVoxelFace(pos, FACE_RIGHT, voxel);
-                }
-            }
-        }
-    }
+void Env_SetEdgeHeight(int height) {
+	Env_Set(height, Env.EdgeHeight, ENV_VAR_EDGE_HEIGHT);
+}
+void Env_SetSidesOffset(int offset) {
+	Env_Set(offset, Env.SidesOffset, ENV_VAR_SIDES_OFFSET);
+}
+void Env_SetCloudsHeight(int height) {
+	Env_Set(height, Env.CloudsHeight, ENV_VAR_CLOUDS_HEIGHT);
+}
+void Env_SetCloudsSpeed(float speed) {
+	Env_Set(speed, Env.CloudsSpeed, ENV_VAR_CLOUDS_SPEED);
 }
 
-// Close world
-void CloseWorld(void) {
-    // Cleanup if needed
+void Env_SetWeatherSpeed(float speed) {
+	Env_Set(speed, Env.WeatherSpeed, ENV_VAR_WEATHER_SPEED);
+}
+void Env_SetWeatherFade(float rate) {
+	Env_Set(rate, Env.WeatherFade, ENV_VAR_WEATHER_FADE);
+}
+void Env_SetWeather(int weather) {
+	Env_Set(weather, Env.Weather, ENV_VAR_WEATHER);
+}
+void Env_SetExpFog(cc_bool expFog) {
+	Env_Set(expFog, Env.ExpFog, ENV_VAR_EXP_FOG);
+}
+void Env_SetSkyboxHorSpeed(float speed) {
+	Env_Set(speed, Env.SkyboxHorSpeed, ENV_VAR_SKYBOX_HOR_SPEED);
+}
+void Env_SetSkyboxVerSpeed(float speed) {
+	Env_Set(speed, Env.SkyboxVerSpeed, ENV_VAR_SKYBOX_VER_SPEED);
 }
 
-// Draw a single voxel
-void DrawVoxel(Vector3 position, BlockType type) {
-    Color color = GetBlockColor(type);
-    DrawCubeV(position, (Vector3){1.0f, 1.0f, 1.0f}, color);
-    DrawCubeWiresV(position, (Vector3){1.0f, 1.0f, 1.0f}, DARKGRAY);
+void Env_SetSkyCol(PackedCol color) {
+	Env_Set(color, Env.SkyCol, ENV_VAR_SKY_COLOR);
+}
+void Env_SetFogCol(PackedCol color) {
+	Env_Set(color, Env.FogCol, ENV_VAR_FOG_COLOR);
+}
+void Env_SetCloudsCol(PackedCol color) {
+	Env_Set(color, Env.CloudsCol, ENV_VAR_CLOUDS_COLOR);
+}
+void Env_SetSkyboxCol(PackedCol color) {
+	Env_Set(color, Env.SkyboxCol, ENV_VAR_SKYBOX_COLOR);
+}
+void Env_SetLavaLightCol(PackedCol color) {
+	Env_Set(color, Env.LavaLightCol, ENV_VAR_LAVALIGHT_COLOR);
+}
+void Env_SetLampLightCol(PackedCol color) {
+	Env_Set(color, Env.LampLightCol, ENV_VAR_LAMPLIGHT_COLOR);
+}
+void Env_SetSunCol(PackedCol color) {
+	PackedCol_GetShaded(color, &Env.SunXSide, &Env.SunZSide, &Env.SunYMin);
+	Env_Set(color, Env.SunCol, ENV_VAR_SUN_COLOR);
+}
+void Env_SetShadowCol(PackedCol color) {
+	PackedCol_GetShaded(color, &Env.ShadowXSide, &Env.ShadowZSide, &Env.ShadowYMin);
+	Env_Set(color, Env.ShadowCol, ENV_VAR_SHADOW_COLOR);
 }
 
-// Draw a single face of a voxel
-void DrawVoxelFace(Vector3 position, int face, BlockType type) {
-    Color color = GetBlockColor(type);
 
-    // Adjust color based on face for depth perception (ambient occlusion fake)
-    switch (face) {
-        case FACE_TOP:
-            color = ColorBrightness(color, 0.1f);
-            break;
-        case FACE_BOTTOM:
-            color = ColorBrightness(color, -0.3f);
-            break;
-        case FACE_LEFT:
-        case FACE_FRONT:
-            color = ColorBrightness(color, -0.15f);
-            break;
-        case FACE_BACK:
-        case FACE_RIGHT:
-            color = ColorBrightness(color, -0.05f);
-            break;
-        default:
-            break;
-    }
+/*########################################################################################################################*
+*-------------------------------------------------------Respawning--------------------------------------------------------*
+*#########################################################################################################################*/
+float Respawn_HighestSolidY(struct AABB* bb) {
+	int minX = Math_Floor(bb->Min.x), maxX = Math_Floor(bb->Max.x);
+	int minY = Math_Floor(bb->Min.y), maxY = Math_Floor(bb->Max.y);
+	int minZ = Math_Floor(bb->Min.z), maxZ = Math_Floor(bb->Max.z);
+	float highestY = RESPAWN_NOT_FOUND;
 
-    float x = position.x + 0.5f;
-    float y = position.y + 0.5f;
-    float z = position.z + 0.5f;
-    float h = 0.5f; // half-size
+	BlockID block;
+	struct AABB blockBB;
+	Vec3 v;
+	int x, y, z;	
 
-    // Use DrawTriangle3D to build quads (2 triangles per face)
-    // Winding order: counter-clockwise for front-facing
-    switch (face) {
-        case FACE_TOP: {
-            Vector3 v0 = {x - h, y + h, z - h};
-            Vector3 v1 = {x - h, y + h, z + h};
-            Vector3 v2 = {x + h, y + h, z + h};
-            Vector3 v3 = {x + h, y + h, z - h};
-            DrawTriangle3D(v0, v1, v2, color);
-            DrawTriangle3D(v0, v2, v3, color);
-            break;
-        }
-        case FACE_BOTTOM: {
-            Vector3 v0 = {x - h, y - h, z + h};
-            Vector3 v1 = {x - h, y - h, z - h};
-            Vector3 v2 = {x + h, y - h, z - h};
-            Vector3 v3 = {x + h, y - h, z + h};
-            DrawTriangle3D(v0, v1, v2, color);
-            DrawTriangle3D(v0, v2, v3, color);
-            break;
-        }
-        case FACE_FRONT: { // -Z face
-            Vector3 v0 = {x + h, y - h, z - h};
-            Vector3 v1 = {x + h, y + h, z - h};
-            Vector3 v2 = {x - h, y + h, z - h};
-            Vector3 v3 = {x - h, y - h, z - h};
-            DrawTriangle3D(v0, v1, v2, color);
-            DrawTriangle3D(v0, v2, v3, color);
-            break;
-        }
-        case FACE_BACK: { // +Z face
-            Vector3 v0 = {x - h, y - h, z + h};
-            Vector3 v1 = {x - h, y + h, z + h};
-            Vector3 v2 = {x + h, y + h, z + h};
-            Vector3 v3 = {x + h, y - h, z + h};
-            DrawTriangle3D(v0, v1, v2, color);
-            DrawTriangle3D(v0, v2, v3, color);
-            break;
-        }
-        case FACE_LEFT: { // -X face
-            Vector3 v0 = {x - h, y - h, z - h};
-            Vector3 v1 = {x - h, y + h, z - h};
-            Vector3 v2 = {x - h, y + h, z + h};
-            Vector3 v3 = {x - h, y - h, z + h};
-            DrawTriangle3D(v0, v1, v2, color);
-            DrawTriangle3D(v0, v2, v3, color);
-            break;
-        }
-        case FACE_RIGHT: { // +X face
-            Vector3 v0 = {x + h, y - h, z + h};
-            Vector3 v1 = {x + h, y + h, z + h};
-            Vector3 v2 = {x + h, y + h, z - h};
-            Vector3 v3 = {x + h, y - h, z - h};
-            DrawTriangle3D(v0, v1, v2, color);
-            DrawTriangle3D(v0, v2, v3, color);
-            break;
-        }
-    }
+	for (y = minY; y <= maxY; y++) { v.y = (float)y;
+		for (z = minZ; z <= maxZ; z++) { v.z = (float)z;
+			for (x = minX; x <= maxX; x++) { v.x = (float)x;
+
+				/* TODO: Maybe use how picking gets blocks, so the bedrock */
+				/* just below and just on borders of the map is treated as such */
+				/* Not sure if this is really necessary though, it seems to work */
+				/* just fine already when you're standing on the bottom of the map. */
+				block = World_SafeGetBlock(x, y, z);
+				Vec3_Add(&blockBB.Min, &v, &Blocks.MinBB[block]);
+				Vec3_Add(&blockBB.Max, &v, &Blocks.MaxBB[block]);
+
+				if (Blocks.Collide[block] != COLLIDE_SOLID) continue;
+				if (!AABB_Intersects(bb, &blockBB)) continue;
+				if (blockBB.Max.y > highestY) highestY = blockBB.Max.y;
+			}
+		}
+	}
+	return highestY;
 }
 
-// Get block color
-Color GetBlockColor(BlockType type) {
-    switch (type) {
-        case BLOCK_GRASS:    return (Color){86, 174, 57, 255};
-        case BLOCK_DIRT:     return (Color){134, 96, 67, 255};
-        case BLOCK_STONE:    return (Color){128, 128, 128, 255};
-        case BLOCK_WOOD:     return (Color){139, 90, 43, 255};
-        case BLOCK_LEAVES:   return (Color){34, 139, 34, 255};
-        case BLOCK_SAND:     return (Color){238, 214, 175, 255};
-        case BLOCK_WATER:    return (Color){64, 164, 223, 200};
-        case BLOCK_BRICK:    return (Color){178, 34, 34, 255};
-        case BLOCK_GLASS:    return (Color){255, 255, 255, 150};
-        case BLOCK_WOOL:     return (Color){245, 245, 245, 255};
-        case BLOCK_COBBLE:   return (Color){104, 104, 104, 255};
-        case BLOCK_PLANK:    return (Color){205, 170, 125, 255};
-        case BLOCK_SLAB:     return (Color){166, 124, 82, 255};
-        case BLOCK_COAL:     return (Color){37, 37, 37, 255};
-        default:             return (Color){200, 200, 200, 255};
-    }
+Vec3 Respawn_FindSpawnPosition(float x, float z, Vec3 modelSize) {
+	Vec3 spawn;
+	struct AABB bb;
+	float highestY;
+	int y;
+
+	Vec3_Set(spawn, x, World.Height + ENTITY_ADJUSTMENT, z);
+	AABB_Make(&bb, &spawn, &modelSize);
+	spawn.y = 0.0f;
+	
+	for (y = World.Height; y >= 0; y--) {
+		highestY = Respawn_HighestSolidY(&bb);
+		if (highestY != RESPAWN_NOT_FOUND) {
+			spawn.y = highestY; break;
+		}
+		bb.Min.y -= 1.0f; bb.Max.y -= 1.0f;
+	}
+	return spawn;
 }
 
-// ── Block Raycast (adapted from ClassiCube's Picking.c - BSD-3 License) ───
-// https://github.com/ClassiCube/ClassiCube
-// Algorithm: "A Fast Voxel Traversal Algorithm for Ray Tracing"
-// John Amanatides, Andrew Woo
-
-typedef struct {
-    Vector3 pos;          // current grid cell (float)
-    Vector3 rayDir;
-    Vector3 invDir;
-    Vector3 tMax;         // distance to next boundary on each axis
-    Vector3 tDelta;       // distance between boundaries on each axis
-    int     stepX, stepY, stepZ;
-    // result
-    bool    hit;
-    int     hitX, hitY, hitZ;          // block that was hit
-    int     normalX, normalY, normalZ; // face normal (which face was hit)
-    int     placeX, placeY, placeZ;    // adjacent cell for placement
-} RayTracer;
-
-static float SafeInv(float v) {
-    return (v != 0.0f) ? (1.0f / v) : 1e30f;
-}
-
-RaycastResult CastRay(Vector3 origin, Vector3 dir, float reach) {
-    RaycastResult res = {0};
-    res.hit = false;
-
-    RayTracer t;
-    t.rayDir = dir;
-    t.invDir = (Vector3){ SafeInv(dir.x), SafeInv(dir.y), SafeInv(dir.z) };
-
-    // Starting cell
-    int ix = (int)floorf(origin.x);
-    int iy = (int)floorf(origin.y);
-    int iz = (int)floorf(origin.z);
-
-    // Step direction per axis
-    t.stepX = (dir.x >= 0) ? 1 : -1;
-    t.stepY = (dir.y >= 0) ? 1 : -1;
-    t.stepZ = (dir.z >= 0) ? 1 : -1;
-
-    // Distance to first boundary on each axis
-    float boundX = (float)(ix + (t.stepX > 0 ? 1 : 0));
-    float boundY = (float)(iy + (t.stepY > 0 ? 1 : 0));
-    float boundZ = (float)(iz + (t.stepZ > 0 ? 1 : 0));
-
-    t.tMax   = (Vector3){
-        (boundX - origin.x) * t.invDir.x,
-        (boundY - origin.y) * t.invDir.y,
-        (boundZ - origin.z) * t.invDir.z
-    };
-    t.tDelta = (Vector3){
-        fabsf(t.invDir.x),
-        fabsf(t.invDir.y),
-        fabsf(t.invDir.z)
-    };
-
-    int nx = 0, ny = 0, nz = 0; // last step direction (face normal)
-    float reachSq = reach * reach;
-
-    for (int iter = 0; iter < 200; iter++) {
-        // Distance check
-        float dx = (float)ix - origin.x + 0.5f;
-        float dy = (float)iy - origin.y + 0.5f;
-        float dz = (float)iz - origin.z + 0.5f;
-        if (dx*dx + dy*dy + dz*dz > reachSq + 1.5f) break;
-
-        // Check block at current cell
-        int block = GetVoxel(ix, iy, iz);
-        if (block != BLOCK_AIR && block != BLOCK_WATER) {
-            res.hit      = true;
-            res.blockX   = ix;
-            res.blockY   = iy;
-            res.blockZ   = iz;
-            res.normalX  = -nx;
-            res.normalY  = -ny;
-            res.normalZ  = -nz;
-            res.placeX   = ix - nx;
-            res.placeY   = iy - ny;
-            res.placeZ   = iz - nz;
-            return res;
-        }
-
-        // DDA step: advance to next boundary on nearest axis
-        if (t.tMax.x < t.tMax.y && t.tMax.x < t.tMax.z) {
-            nx = t.stepX; ny = 0; nz = 0;
-            ix      += t.stepX;
-            t.tMax.x += t.tDelta.x;
-        } else if (t.tMax.y < t.tMax.z) {
-            nx = 0; ny = t.stepY; nz = 0;
-            iy      += t.stepY;
-            t.tMax.y += t.tDelta.y;
-        } else {
-            nx = 0; ny = 0; nz = t.stepZ;
-            iz      += t.stepZ;
-            t.tMax.z += t.tDelta.z;
-        }
-    }
-    return res;
-}
-
-// Draw selection highlight on targeted block
-void DrawBlockHighlight(RaycastResult* r) {
-    if (!r->hit) return;
-    Vector3 pos = {
-        (float)r->blockX + 0.5f,
-        (float)r->blockY + 0.5f,
-        (float)r->blockZ + 0.5f
-    };
-    DrawCubeWires(pos, 1.02f, 1.02f, 1.02f, (Color){0, 0, 0, 200});
-    DrawCubeWires(pos, 1.04f, 1.04f, 1.04f, (Color){255, 255, 255, 80});
-}
+struct IGameComponent World_Component = {
+	World_Reset, /* Init  */
+	World_Reset  /* Free  */
+};

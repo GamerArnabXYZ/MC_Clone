@@ -1,92 +1,79 @@
-# Makefile for VoxelCraft - Minecraft-styled Voxel Game
-# Target: Desktop (Windows, Linux, macOS)
+SOURCE_DIR  = src
+BUILD_DIR   = build
+C_SOURCES   = $(wildcard $(SOURCE_DIR)/*.c)
+OBJECTS     = $(patsubst %.c, $(BUILD_DIR)/%.o, $(C_SOURCES))
+BUILD_DIRS  = $(BUILD_DIR) $(BUILD_DIR)/src
 
-# Compiler settings
-CC = gcc
-CFLAGS = -Wall -Wextra -O2 -I./include -I./src
-LDFLAGS = -lraylib -lm -lpthread
+##############################
+# Configurable flags and names
+##############################
+CFLAGS  = -pipe -fno-math-errno -Werror -Wno-error=missing-braces -Wno-error=strict-aliasing
+LDFLAGS = -g -rdynamic
+ENAME   = ClassiCube
+TARGET  := $(ENAME)
 
-# Directories
-SRC_DIR = src
-INC_DIR = include
-BUILD_DIR = build
-ASSETS_DIR = assets
+TRACK_DEPENDENCIES=1
+LINK = $(CC)
+BEARSSL=1
+OPT_LEVEL=1
 
-# Source files
-SOURCES = $(wildcard $(SRC_DIR)/*.c)
-OBJECTS = $(SOURCES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
-
-# Output
-TARGET = voxelcraft
-
-# Platform-specific settings
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Darwin)
-    LDFLAGS += -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
-    LDFLAGS += -L/usr/local/lib
-    CFLAGS += -I/usr/local/include
+ifndef RM
+	RM = rm -f
 endif
 
-ifeq ($(OS),Windows_NT)
-    TARGET = voxelcraft.exe
-    LDFLAGS = -lraylib -lm -lwinmm -lgdi32 -lopengl32
-    RM = del /Q
-    FIXPATH = \\
+#########################################################
+# Platform config - web only
+#########################################################
+ifeq ($(PLAT),web)
+	CC      = emcc
+	OEXT    = .html
+	CFLAGS  = -g
+	LDFLAGS = -g -s WASM=1 -s NO_EXIT_RUNTIME=1 -s ABORTING_MALLOC=0 -s ALLOW_MEMORY_GROWTH=1 -s TOTAL_STACK=256Kb --js-library $(SOURCE_DIR)/webclient/interop_web.js
+	BUILD_DIR = build/web
+	BEARSSL = 0
+	BUILD_DIRS += $(BUILD_DIR)/src/webclient
+	C_SOURCES  += $(wildcard src/webclient/*.c)
+endif
+
+ifeq ($(BEARSSL),1)
+	BUILD_DIRS += $(BUILD_DIR)/third_party/bearssl
+	C_SOURCES  += $(wildcard third_party/bearssl/*.c)
+endif
+
+ifdef RELEASE
+	CFLAGS += -O$(OPT_LEVEL)
 else
-    RM = rm -f
-    FIXPATH = /
+	CFLAGS += -g
 endif
 
-.PHONY: all clean run assets
+default: web
 
-all: $(BUILD_DIR) assets $(TARGET)
-
-# Create build directory
-$(BUILD_DIR):
-	@mkdir -p $(BUILD_DIR)
-
-# Compile source files
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# Link object files
-$(TARGET): $(OBJECTS)
-	$(CC) $^ -o $@ $(LDFLAGS)
-	@echo "Build complete: $(TARGET)"
-
-# Create assets directory
-assets:
-	@mkdir -p $(ASSETS_DIR)/textures
-	@echo "Assets directory ready"
-
-# Clean build
+web:
+	$(MAKE) $(TARGET) PLAT=web
+android:
+	$(MAKE) -f misc/android/Makefile
+release:
+	$(MAKE) $(TARGET) RELEASE=1 PLAT=web
 clean:
-	$(RM) $(BUILD_DIR)/* $(TARGET)
-	@echo "Clean complete"
+	$(RM) $(OBJECTS)
 
-# Run game
-run: all
-ifeq ($(OS),Windows_NT)
-	start $(TARGET)
+$(BUILD_DIRS):
+	mkdir -p $@
+
+$(ENAME): $(BUILD_DIRS) $(OBJECTS)
+	$(LINK) $(LDFLAGS) -o $@$(OEXT) $(OBJECTS) $(EXTRA_LIBS) $(LIBS)
+	@echo "----------------------------------------------------"
+	@echo "Successfully compiled: $(ENAME)"
+	@echo "----------------------------------------------------"
+
+ifeq ($(TRACK_DEPENDENCIES), 1)
+DEPFLAGS = -MT $@ -MMD -MP -MF $(BUILD_DIR)/$*.d
+DEPFILES := $(patsubst %.o, %.d, $(OBJECTS))
+$(DEPFILES):
+$(BUILD_DIR)/%.o : %.c $(BUILD_DIR)/%.d
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) $(DEPFLAGS) -c $< -o $@
+include $(wildcard $(DEPFILES))
 else
-	./$(TARGET)
+$(BUILD_DIR)/%.o : %.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c $< -o $@
 endif
-
-# Install raylib dependencies (Linux)
-deps-ubuntu:
-	sudo apt-get update
-	sudo apt-get install build-essential libraylib-dev
-
-deps-fedora:
-	sudo dnf install gcc make raylib-devel
-
-deps-arch:
-	sudo pacman -S gcc make raylib
-
-# Debug build
-debug: CFLAGS += -g -DDEBUG
-debug: clean all
-
-# Release build
-release: CFLAGS += -O3 -DNDEBUG
-release: clean all
