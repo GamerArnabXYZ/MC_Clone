@@ -1220,7 +1220,8 @@ void LBackend_TableMouseUp(struct LTable* w, int idx) {
 #endif
 
 /* ===== LBackend_Android (merged) ===== */
-#if defined CC_BUILD_ANDROID11111111111
+#if defined CC_BUILD_ANDROID
+#include "android/interop_android.h"
 
 
 struct FontDesc logoFont;

@@ -143,18 +143,8 @@ void Launcher_FilterUrlHash(cc_string* str) {
 }
 
 cc_bool Launcher_ConnectToServer(const cc_string* hash, Launcher_WebErrorCallback errorCallback) {
-	struct ServerInfo* info;
-	int i;
-	if (!hash->length) return false;
-	FetchServerTask_Run(hash);
-	}
-
-	if (FetchServerTask.server.hash.length) {
-		StartFromInfo(&FetchServerTask.server);
-		return true;
-	} else if (FetchServerTask.Base.success) {
-		Window_ShowDialog("Failed to connect", "No server has that hash");
-	}
+	/* Online server connect removed - use Direct Connect instead */
+	Window_ShowDialog("Info", "Online server browser removed. Use Direct Connect.");
 	return false;
 }
 

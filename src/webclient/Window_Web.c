@@ -3,7 +3,7 @@
 #include "../Game.h"
 #include "../String_.h"
 #include "../Funcs.h"
-#include "../ExtMath.h"
+#include "../MathUtils.h"
 #include "../Bitmap.h"
 #include "../Errors.h"
 #include "../Gui.h"

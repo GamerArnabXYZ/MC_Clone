@@ -66,71 +66,57 @@ typedef void (*LWebTask_ErrorCallback)(struct HttpRequest* req);
 void LWebTask_Tick(struct LWebTask* task, LWebTask_ErrorCallback errorCallback);
 void LWebTasks_Init(void);
 
-
+/* Stub task structs - kept for compilation compatibility */
 extern struct GetTokenTaskData {
 	struct LWebTask Base;
-	cc_string token;    /* Random CSRF token for logging in. */
-	cc_string username; /* Username if session is already logged in. */
-	cc_bool   error;    /* Whether a signin error occurred */
+	cc_string token;
+	cc_string username;
+	cc_bool   error;
 } GetTokenTask;
 void GetTokenTask_Run(void);
 
 extern struct SignInTaskData {
 	struct LWebTask Base;
-	cc_string username; /* Username to sign in as. Changed to case correct username. */
-	const char* error;  /* If sign in fails, the reason why. */
-	cc_bool needMFA;    /* need login code for multifactor authentication */
+	cc_string username;
+	const char* error;
+	cc_bool needMFA;
 } SignInTask;
 void SignInTask_Run(const cc_string* user, const cc_string* pass, const cc_string* mfaCode);
 
-
 extern struct FetchServerData {
 	struct LWebTask Base;
-	struct ServerInfo server; /* Details about the given server on success. */
+	struct ServerInfo server;
 } FetchServerTask;
 void FetchServerTask_Run(const cc_string* hash);
 
-
 extern struct FetchServersData {
 	struct LWebTask Base;
-	struct ServerInfo* servers; /* List of all public servers on server list. */
-	cc_uint16* orders;          /* Order of each server (after sorting) */
-	int numServers;             /* Number of public servers. */
+	struct ServerInfo* servers;
+	cc_uint16* orders;
+	int numServers;
 } FetchServersTask;
 void FetchServersTask_Run(void);
 void FetchServersTask_ResetOrder(void);
-#define Servers_Get(i) (&FetchServersTask.servers[FetchServersTask.orders[i]])
-
 
 extern struct CheckUpdateData {
 	struct LWebTask Base;
-	/* Unix timestamp latest commit/dev build and release were at. */
 	cc_uint64 devTimestamp, relTimestamp;
-	/* Version of latest release. */
 	cc_string latestRelease;
-} CheckUpdateTask; /* TODO: Work out the JSON for this.. */
+} CheckUpdateTask;
 void CheckUpdateTask_Run(void);
-
 
 extern struct FetchUpdateData {
 	struct LWebTask Base;
-	/* Unix timestamp downloaded build was originally built at. */
 	cc_uint64 timestamp;
 } FetchUpdateTask;
 void FetchUpdateTask_Run(cc_bool release, int buildIndex);
 
-
-extern struct FetchFlagsData { 
+extern struct FetchFlagsData {
 	struct LWebTask Base;
-	/* Number of flags downloaded. */
 	int count;
 } FetchFlagsTask;
-
-/* Asynchronously downloads the flag associated with the given server's country. */
 void FetchFlagsTask_Add(const struct ServerInfo* server);
-/* Gets the country flag associated with the given server's country. */
 struct Flag* Flags_Get(const struct ServerInfo* server);
-/* Frees all flag bitmaps. */
 void Flags_Free(void);
 
 void Session_Load(void);

@@ -1,3 +1,5 @@
+#ifndef CC_VIRTUALUI_H
+#define CC_VIRTUALUI_H
 /* VirtualUI.h - VirtualCursor, VirtualDialog, VirtualKeyboard merged */
 
 /* ===== VirtualCursor.h ===== */
@@ -684,3 +686,5 @@ static void VirtualKeyboard_Close(void) {
 
 	DisplayInfo.ShowingSoftKeyboard = false;
 }
+
+#endif /* CC_VIRTUALUI_H */

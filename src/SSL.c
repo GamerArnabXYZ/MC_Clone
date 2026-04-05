@@ -5,6 +5,9 @@
 #include "String_.h"
 #include "../third_party/bearssl/bearssl.h"
 #include "../misc/certs/certs.h"
+#ifdef CC_BUILD_ANDROID
+#include "android/interop_android.h"
+#endif
 
 // https://github.com/unkaktus/bearssl/blob/master/samples/client_basic.c#L283
 #define SSL_ERROR_SHIFT 0xB5510000

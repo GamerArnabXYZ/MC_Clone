@@ -1,3 +1,5 @@
+#ifndef CC_RENDERERS_H
+#define CC_RENDERERS_H
 /* Renderers.h - AxisLinesRenderer, HeldBlockRenderer, SelOutlineRenderer,
                  IsometricDrawer, SelectionBox, Picking merged */
 
@@ -153,3 +155,5 @@ void Picking_ClipCameraPos(const Vec3* origin, const Vec3* dir, float reach, str
 
 CC_END_HEADER
 #endif
+
+#endif /* CC_RENDERERS_H */

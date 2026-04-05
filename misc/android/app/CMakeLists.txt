@@ -22,22 +22,18 @@ set(${CMAKE_C_FLAGS}, "${CMAKE_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -Wall -Werror")
 
 add_library(voxelcraft SHARED
-        ../../src/IsometricDrawer.c
-        ../../src/Builder.c
-        ../../src/ExtMath.c
-        ../../src/_ftbitmap.c
+                ../../src/Builder.c
+                ../../src/_ftbitmap.c
         ../../src/Utils.c
         ../../src/Camera.c
         ../../src/Game.c
-        ../../src/GameVersion.c
-        ../../src/_ftbase.c
+                ../../src/_ftbase.c
         ../../src/Graphics_GL2.c
         ../../src/Deflate.c
         ../../src/_cff.c
         ../../src/_ftsynth.c
         ../../src/String.c
-        ../../src/LWidgets.c
-        ../../src/Options.c
+                ../../src/Options.c
         ../../src/Drawer2D.c
         ../../src/Server.c
         ../../src/Entity.c
@@ -45,24 +41,20 @@ add_library(voxelcraft SHARED
         ../../src/Vorbis.c
         ../../src/Protocol.c
         ../../src/World.c
-        ../../src/SelOutlineRenderer.c
-        ../../src/Platform_Posix.c
+                ../../src/Platform_Posix.c
         ../../src/LScreens.c
         ../../src/_truetype.c
         ../../src/_ftglyph.c
         ../../src/Model.c
         ../../src/_autofit.c
-        ../../src/Vectors.c
-        ../../src/HeldBlockRenderer.c
-        ../../src/Inventory.c
+                        ../../src/Inventory.c
         ../../src/Launcher.c
         ../../src/Block.c
         ../../src/LWeb.c
         ../../src/Stream.c
         ../../src/Lighting.c
         ../../src/Resources.c
-        ../../src/PackedCol.c
-        ../../src/Screens.c
+                ../../src/Screens.c
         ../../src/Formats.c
         ../../src/_sfnt.c
         ../../src/Bitmap.c
@@ -77,36 +69,28 @@ add_library(voxelcraft SHARED
         ../../src/Widgets.c
         ../../src/TexturePack.c
         ../../src/Menus.c
-        ../../src/BlockPhysics.c
-        ../../src/_psmodule.c
+                ../../src/_psmodule.c
         ../../src/Chat.c
         ../../src/Gui.c
-        ../../src/AxisLinesRenderer.c
-        ../../src/Picking.c
-        ../../src/_type1.c
+                        ../../src/_type1.c
         ../../src/_smooth.c
         ../../src/_psaux.c
         ../../src/Generator.c
         ../../src/Input.c
         ../../src/Particle.c
         ../../src/Physics.c
-        ../../src/SelectionBox.c
-        ../../src/EnvRenderer.c
+                ../../src/EnvRenderer.c
         ../../src/Animations.c
         ../../src/LBackend.c
+        ../../src/Audio_Backends.c
+        ../../src/Renderers.c
+        ../../src/MathUtils.c
         ../../src/SystemFonts.c
         ../../src/Commands.c
-        ../../src/EntityRenderers.c
-        ../../src/Audio_SLES.c
-        ../../src/TouchUI.c
-        ../../src/LBackend_Android.c
-        ../../src/InputHandler.c
-        ../../src/MenuOptions.c
-        ../../src/FancyLighting.c
-        ../../src/Queue.c
-        ../../src/SSL.c
-        ../../src/Certs.c
-        ../../src/android/Platform_Android.c
+                        ../../src/TouchUI.c
+                ../../src/InputHandler.c
+                                ../../src/SSL.c
+                ../../src/android/Platform_Android.c
         ../../src/android/Window_Android.c
         ../../third_party/bearssl/aes_big_cbcdec.c
         ../../third_party/bearssl/aes_big_cbcenc.c

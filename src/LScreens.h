@@ -44,14 +44,11 @@ void LScreen_AddWidget(void* screen, void* widget);
 void ChooseModeScreen_SetActive(cc_bool firstTime);
 void ColoursScreen_SetActive(void);
 void DirectConnectScreen_SetActive(void);
-void MFAScreen_SetActive(void);
 void MainScreen_SetActive(void);
 void CheckResourcesScreen_SetActive(void);
 void FetchResourcesScreen_SetActive(void);
-void ServersScreen_SetActive(void);
 void SettingsScreen_SetActive(void);
 void ThemesScreen_SetActive(void);
-void UpdatesScreen_SetActive(void);
 
 CC_END_HEADER
 #endif
@@ -283,7 +280,6 @@ struct LTable {
 
 struct LTableCell { struct LTable* table; int x, y, width; };
 /* Gets the current ith row */
-#define LTable_Get(row) (&FetchServersTask.servers[FetchServersTask.servers[row]._order])
 
 /* Initialises a table. */
 /* NOTE: Must also call LTable_Reset to make a table actually useful. */

@@ -1,3 +1,5 @@
+#ifndef CC_MATHUTILS_H
+#define CC_MATHUTILS_H
 /* MathUtils.h - ExtMath, Vectors, PackedCol, Queue merged */
 
 /* ===== ExtMath.h ===== */
@@ -335,3 +337,5 @@ void Queue_Clear(struct Queue* queue);
 
 CC_END_HEADER
 #endif
+
+#endif /* CC_MATHUTILS_H */
