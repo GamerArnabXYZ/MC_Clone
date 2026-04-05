@@ -29,6 +29,10 @@ static const struct DynamicLibSym core_funcs[] = {
 	#define GL_FUNC(retType, name, args) { DYNAMICLIB_QUOTE(name), (void**)&name },
 };
 #else
+/* Declare GL2 (VBO) functions for Android/Web/other platforms */
+#undef  GL_FUNC
+#define GL_FUNC(retType, name, args) GLAPI retType APIENTRY name args;
+#include "../misc/opengl/GL2Funcs.h"
 #endif
 
 #include "../misc/opengl/GL1Macros.h"

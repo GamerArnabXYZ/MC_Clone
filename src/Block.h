@@ -148,3 +148,28 @@ cc_bool AutoRotate_BlocksShareGroup(BlockID block, BlockID blockOther);
 
 CC_END_HEADER
 #endif
+
+/* ===== BlockPhysics (merged from BlockPhysics.h) ===== */
+#ifndef CC_BLOCKPHYSICS_H
+#define CC_BLOCKPHYSICS_H
+CC_BEGIN_HEADER
+
+typedef void (*PhysicsHandler)(int index, BlockID block);
+
+struct Physics_ {
+	cc_bool Enabled;
+	PhysicsHandler OnActivate[BLOCK_COUNT];
+	PhysicsHandler OnDelete[BLOCK_COUNT];
+	PhysicsHandler OnPlace[BLOCK_COUNT];
+	PhysicsHandler OnRandomTick[BLOCK_COUNT];
+};
+extern struct Physics_ Physics;
+
+void Physics_Init(void);
+void Physics_Free(void);
+void Physics_Tick(void);
+void Physics_SetEnabled(cc_bool enabled);
+void Physics_OnBlockChanged(int x, int y, int z, BlockID old, BlockID now);
+
+CC_END_HEADER
+#endif

@@ -3062,12 +3062,8 @@ static void Menu_Remove(void* screen, int i) {
 
 static float Menu_Float(const cc_string* str) { float v; Convert_ParseFloat(str, &v); return v; }
 
-static void Menu_SwitchBindsClassic(void* a, void* b) { ClassicBindingsScreen_Show(); }
-static void Menu_SwitchNostalgia(void* a, void* b)    { NostalgiaMenuScreen_Show(); }
 static void Menu_SwitchFont(void* a, void* b)         { FontListScreen_Show(); }
 
-static void Menu_SwitchOptions(void* a, void* b)   { OptionsGroupScreen_Show(); }
-static void Menu_SwitchPause(void* a, void* b)     { Gui_ShowPauseMenu(); }
 
 
 /*########################################################################################################################*

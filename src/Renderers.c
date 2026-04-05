@@ -81,19 +81,19 @@ void AxisLinesRenderer_Render(void) {
 /*########################################################################################################################*
 *-----------------------------------------------AxisLinesRenderer component-----------------------------------------------*
 *#########################################################################################################################*/
-static void OnContextLost(void* obj) {
+static void AL_OnContextLost(void* obj) {
 	Gfx_DeleteDynamicVb(&axisLines_vb);
 }
 
-static void OnInit(void) {
-	Event_Register_(&GfxEvents.ContextLost, NULL, OnContextLost);
+static void AL_OnInit(void) {
+	Event_Register_(&GfxEvents.ContextLost, NULL, AL_OnContextLost);
 }
 
-static void OnFree(void) { OnContextLost(NULL); }
+static void AL_OnFree(void) { AL_OnContextLost(NULL); }
 
 struct IGameComponent AxisLinesRenderer_Component = {
-	OnInit, /* Init */
-	OnFree, /* Free */
+	AL_OnInit, /* Init */
+	AL_OnFree, /* Free */
 };
 
 /* ===== HeldBlockRenderer.c ===== */
@@ -334,7 +334,7 @@ void HeldBlockRenderer_Render(float delta) {
 }
 
 
-static void OnContextLost(void* obj) {
+static void HB_OnContextLost(void* obj) {
 	Gfx_DeleteDynamicVb(&held_entity.ModelVB);
 }
 
@@ -342,7 +342,7 @@ static const struct EntityVTABLE heldEntity_VTABLE = {
 	NULL, NULL, NULL, HeldBlockRenderer_GetCol,
 	NULL, NULL
 };
-static void OnInit(void) {
+static void HB_OnInit(void) {
 	Entity_Init(&held_entity);
 	held_entity.VTABLE  = &heldEntity_VTABLE;
 	held_entity.NoShade = true;
@@ -353,17 +353,17 @@ static void OnInit(void) {
 	Event_Register_(&GfxEvents.ProjectionChanged, NULL, OnProjectionChanged);
 	Event_Register_(&UserEvents.HeldBlockChanged, NULL, DoSwitchBlockAnim);
 	Event_Register_(&UserEvents.BlockChanged,     NULL, OnBlockChanged);
-	Event_Register_(&GfxEvents.ContextLost,       NULL, OnContextLost);
+	Event_Register_(&GfxEvents.ContextLost,       NULL, HB_OnContextLost);
 }
 #else
 void HeldBlockRenderer_ClickAnim(cc_bool digging) { }
 void HeldBlockRenderer_Render(float delta) { }
 
-static void OnInit(void) { }
+static void HB_OnInit(void) { }
 #endif
 
 struct IGameComponent HeldBlockRenderer_Component = {
-	OnInit /* Init  */
+	HB_OnInit /* Init  */
 };
 
 /* ===== SelOutlineRenderer.c ===== */
@@ -475,14 +475,14 @@ void SelOutlineRenderer_Render(struct RayTracer* selected, cc_bool dirty) {
 /*########################################################################################################################*
 *-----------------------------------------------SelOutlineRenderer component----------------------------------------------*
 *#########################################################################################################################*/
-static void OnContextLost(void* obj) {
+static void SO_OnContextLost(void* obj) {
 	Gfx_DeleteDynamicVb(&selOutline_vb);
 }
 
-static void OnInit(void) {
+static void SO_OnInit(void) {
 	int opacity;
 	cc_uint8 rgb[3];
-	Event_Register_(&GfxEvents.ContextLost, NULL, OnContextLost);
+	Event_Register_(&GfxEvents.ContextLost, NULL, SO_OnContextLost);
 
 	base_size = Options_GetFloat(OPT_SELECTED_BLOCK_OUTLINE_SCALE, 1, 16, 1);
 	opacity   = Options_GetInt(OPT_SELECTED_BLOCK_OUTLINE_OPACITY, 0, 255, 102);
@@ -494,11 +494,11 @@ static void OnInit(void) {
 	}
 }
 
-static void OnFree(void) { OnContextLost(NULL); }
+static void SO_OnFree(void) { SO_OnContextLost(NULL); }
 
 struct IGameComponent SelOutlineRenderer_Component = {
-	OnInit, /* Init */
-	OnFree, /* Free */
+	SO_OnInit, /* Init */
+	SO_OnFree, /* Free */
 };
 
 /* ===== IsometricDrawer.c ===== */
@@ -885,17 +885,17 @@ static void Selections_ContextLost(void* obj) { }
 /*########################################################################################################################*
 *--------------------------------------------------Selections component---------------------------------------------------*
 *#########################################################################################################################*/
-static void OnInit(void) {
+static void SB_OnInit(void) {
 	Event_Register_(&GfxEvents.ContextLost, NULL, Selections_ContextLost);
 }
 
 static void OnReset(void) { selections_count = 0; }
 
-static void OnFree(void) { Selections_ContextLost(NULL); }
+static void SB_OnFree(void) { Selections_ContextLost(NULL); }
 
 struct IGameComponent Selections_Component = {
-	OnInit,  /* Init  */
-	OnFree,  /* Free  */
+	SB_OnInit,  /* Init  */
+	SB_OnFree,  /* Free  */
 	OnReset, /* Reset */
 	OnReset  /* OnNewMap */
 };

@@ -318,16 +318,10 @@ void FetchUpdateTask_Run(cc_bool release, int buildIndex) { /* updates removed *
 *-----------------------------------------------------FetchFlagsTask------------------------------------------------------*
 *#########################################################################################################################*/
 struct FetchFlagsData FetchFlagsTask;
-static int flagsCount, flagsCapacity;
-static struct Flag* flags;
 
 void FetchFlagsTask_Add(const struct ServerInfo* server) { }
 struct Flag* Flags_Get(const struct ServerInfo* server) { return NULL; }
-void Flags_Free(void) { }
-
-    flagsCount = 0;
-    FetchFlagsTask.count = 0;
-}
+void Flags_Free(void) { FetchFlagsTask.count = 0; }
 
 
 /*########################################################################################################################*

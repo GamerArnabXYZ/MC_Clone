@@ -6,7 +6,7 @@
 #include "LBackend_Win.c"
 #elif defined CC_BUILD_IOS
 /* iOS uses custom UI backend */
-#else
+#elif !defined(CC_BUILD_ANDROID)
 #include "Launcher.h"
 #include "Drawer2D.h"
 #include "Window.h"
@@ -953,6 +953,8 @@ void LBackend_TableFlagAdded(struct LTable* w) {
 }
 
 /* Works out top and height of the scrollbar */
+/* Server browser table - servers list is empty in offline mode */
+#define LTable_Get(row) (FetchServersTask.servers ? &FetchServersTask.servers[FetchServersTask.servers[row]._order] : NULL)
 static void LTable_GetScrollbarCoords(struct LTable* w, int* y, int* height) {
 	float scale;
 	if (!w->rowsCount) { *y = 0; *height = 0; return; }
@@ -1222,6 +1224,9 @@ void LBackend_TableMouseUp(struct LTable* w, int idx) {
 /* ===== LBackend_Android (merged) ===== */
 #if defined CC_BUILD_ANDROID
 #include "android/interop_android.h"
+#include <android/bitmap.h>
+#include "LWeb.h"
+#define LTable_Get(row) (FetchServersTask.servers ? &FetchServersTask.servers[FetchServersTask.servers[row]._order] : NULL)
 
 
 struct FontDesc logoFont;
@@ -1239,10 +1244,10 @@ void LBackend_Free(void) {
 
 void LBackend_UpdateLogoFont(void) {
     Font_Free(&logoFont);
-    Launcher_MakeLogoFont(&logoFont);
+    Launcher_MakeTitleFont(&logoFont);
 }
 void LBackend_DrawLogo(struct Context2D* ctx, const char* title) {
-    Launcher_DrawLogo(&logoFont, title, ctx);
+    Launcher_DrawTitle(&logoFont, title, ctx);
 }
 
 static void LBackend_LayoutDimensions(struct LWidget* w) {

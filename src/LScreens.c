@@ -482,7 +482,7 @@ static void DirectConnectScreen_StartClient(void* w) {
 
 	cc_string user   = DirectConnectScreen.iptUsername.text;
 	cc_string addr   = DirectConnectScreen.iptAddress.text;
-	cc_string mppass; char mppassBuffer[1] = {0}; String_InitArray_unsafe(mppass, mppassBuffer);
+	cc_string mppass; char mppassBuffer[STRING_SIZE]; String_InitArray(mppass, mppassBuffer); mppass.length = 0;
 
 	cc_string ip, port;
 	cc_sockaddr addrs[SOCKET_MAX_ADDRS];
@@ -534,7 +534,6 @@ static void DirectConnectScreen_Activated(struct LScreen* s_) {
 
 	s->iptUsername.ClipboardFilter = DirectConnectScreen_UrlFilter;
 	s->iptAddress.ClipboardFilter  = DirectConnectScreen_UrlFilter;
-	s->iptMppass.ClipboardFilter   = DirectConnectScreen_UrlFilter;
 }
 
 static void DirectConnectScreen_Load(struct LScreen* s_) {
@@ -558,7 +557,6 @@ static void DirectConnectScreen_Load(struct LScreen* s_) {
 	
 	LInput_SetText(&s->iptUsername, &user);
 	LInput_SetText(&s->iptAddress,  &addr);
-	LInput_SetText(&s->iptMppass,   &mppass);
 }
 
 void DirectConnectScreen_SetActive(void) {
@@ -641,6 +639,7 @@ static void SwitchToSplitScreen(void* w) { SplitScreen_SetActive(); }
 static struct MainScreen {
 	LScreen_Layout
 	struct LButton btnRegister, btnOptions, btnUpdates;
+	struct LButton btnResume, btnDirect, btnSPlayer, btnSplit;
 	struct LLabel lblStatus, lblUpdate;
 } MainScreen CC_BIG_VAR;
 
@@ -682,7 +681,7 @@ static void MainScreen_Resume(void* w) {
 
 static void MainScreen_Singleplayer(void* w) {
 	static const cc_string defUser = String_FromConst(DEFAULT_USERNAME);
-	const cc_string* user = &MainScreen.iptUsername.text;
+	const cc_string* user = &Launcher_Username;
 
 	if (!user->length) user = &defUser;
 	Launcher_StartGame(user, &String_Empty, &String_Empty, &String_Empty, &String_Empty, 1);
@@ -697,7 +696,7 @@ static void MainScreen_ResumeHover(void* w) {
 	if (!info.user.length) return;
 	String_InitArray(str, strBuffer);
 
-	if (info.server.length && String_Equals(&info.user,	&s->iptUsername.text)) {
+	if (info.server.length && String_Equals(&info.user,	&Launcher_Username)) {
 		String_Format1(&str, "&eResume to %s", &info.server);
 	} else if (info.server.length) {
 		String_Format2(&str, "&eResume as %s to %s", &info.user, &info.server);
@@ -743,95 +742,28 @@ static void MainScreen_ExitApp(void* w) {
 
 static void MainScreen_Activated(struct LScreen* s_) {
 	struct MainScreen* s = (struct MainScreen*)s_;
-
-	s->iptPassword.inputType = KEYBOARD_TYPE_PASSWORD;
-	s->lblUpdate.small       = true;
-
-#ifdef CC_BUILD_NETWORKING
-	LInput_Add(s,  &s->iptUsername, 280, "Username..",  main_iptUsername);
-	LInput_Add(s,  &s->iptPassword, 280, "Password..",  main_iptPassword);
-	LButton_Add(s, &s->btnLogin,    100, 35, "Sign in", 
-				MainScreen_Login,  main_btnLogin);
-	LButton_Add(s, &s->btnResume,   100, 35, "Resume",  
-				MainScreen_Resume, main_btnResume);
-#endif
+	s->lblUpdate.small = true;
 
 	LLabel_Add(s,  &s->lblStatus,  "",  main_lblStatus);
-#ifdef CC_BUILD_NETWORKING
-	LButton_Add(s, &s->btnDirect,  200, 35, "Direct connect", 
-				SwitchToDirectConnect,   main_btnDirect);
-#endif
+	LButton_Add(s, &s->btnResume,  200, 35, "Resume",
+				MainScreen_Resume,        main_btnResume);
+	LButton_Add(s, &s->btnDirect,  200, 35, "Direct connect",
+				SwitchToDirectConnect,    main_btnDirect);
 	LButton_Add(s, &s->btnSPlayer, 200, 35, "Singleplayer",
-				MainScreen_Singleplayer, main_btnSPlayer);
-#ifdef CC_BUILD_SPLITSCREEN
-	LButton_Add(s, &s->btnSplit,   200, 35, "Splitscreen (WIP)", 
-				SwitchToSplitScreen,     main_btnSplit);
-#endif
-
-	if (Process_OpenSupported) {
-		LButton_Add(s, &s->btnRegister, 100, 35, "Register", 
-					MainScreen_Register, main_btnRegister);
-	}
-
-	LButton_Add(s, &s->btnOptions, 100, 35, "Options", 
-				SwitchToSettings, main_btnOptions);
-
-	if (Platform_Flags & PLAT_FLAG_APP_EXIT) {
-		LLabel_Add(s,  &s->lblUpdate,  "&eChecking..", main_lblUpdate_N);
-		LButton_Add(s, &s->btnUpdates,  100, 35, "Exit", 
-					MainScreen_ExitApp, main_btnUpdates);
-	} else {
-		LLabel_Add(s,  &s->lblUpdate,  "&eChecking..",      
-					Updater_Supported ? main_lblUpdate_N : main_lblUpdate_H);
-		if (Updater_Supported) {
-			LButton_Add(s, &s->btnUpdates,  100, 35, "Updates", 
-						SwitchToUpdates, main_btnUpdates);
-		}
-	}
-
-#ifdef CC_BUILD_NETWORKING
+				MainScreen_Singleplayer,  main_btnSPlayer);
+	LButton_Add(s, &s->btnOptions, 100, 35, "Options",
+				SwitchToSettings,         main_btnOptions);
 	s->btnResume.OnHover   = MainScreen_ResumeHover;
 	s->btnResume.OnUnhover = MainScreen_ResumeUnhover;
 
 
 
 static void MainScreen_Load(struct LScreen* s_) {
-	cc_string user, pass; char passBuffer[STRING_SIZE];
-	struct MainScreen* s = (struct MainScreen*)s_;
-
-	String_InitArray(pass, passBuffer);
+	/* Load saved username */
+	cc_string user;
 	Options_UNSAFE_Get(LOPT_USERNAME, &user);
-	Options_GetSecure(LOPT_PASSWORD, &pass);
-
-	LInput_SetText(&s->iptUsername, &user);
-	LInput_SetText(&s->iptPassword, &pass);
-
-	/* Auto sign in when automatically joining a server */
-	if (!Launcher_AutoHash.length)    return;
-	if (!user.length || !pass.length) return;
-	MainScreen_DoLogin();
+	String_Copy(&Launcher_Username, &user);
 }
-
-
-
-
-static void MainScreen_ServersError(struct HttpRequest* req) {
-	MainScreen_Error(req, "retrieving servers list");
-}
-
-static void MainScreen_FetchServerError(struct HttpRequest* req) {
-	MainScreen_Error(req, "fetching server details");
-}
-
-
-static void MainScreen_Tick(struct LScreen* s_) {
-	struct MainScreen* s = (struct MainScreen*)s_;
-	LScreen_Tick(s_);
-
-#ifdef CC_BUILD_NETWORKING
-#endif
-}
-
 void MainScreen_SetActive(void) {
 	struct MainScreen* s = &MainScreen;
 	LScreen_Reset((struct LScreen*)s);
@@ -844,11 +776,7 @@ void MainScreen_SetActive(void) {
 	s->Tick          = MainScreen_Tick;
 	s->title         = "VoxelCraft";
 
-#ifdef CC_BUILD_NETWORKING
-	s->onEnterWidget = (struct LWidget*)&s->btnLogin;
-#else
 	s->onEnterWidget = (struct LWidget*)&s->btnSPlayer;
-#endif
 
 	Launcher_SetScreen((struct LScreen*)s);
 }
@@ -1837,4 +1765,9 @@ void LTable_Reset(struct LTable* w) {
 	w->rowsCount  = 0;
 	w->_wheelAcc  = 0.0f;
 	w->sortingCol = -1;
+}
+
+/* LTable_RowColor stub - server browser removed */
+BitmapCol LTable_RowColor(int row, cc_bool selected, cc_bool featured) {
+	return BitmapCol_Make(0, 0, 0, 255);
 }

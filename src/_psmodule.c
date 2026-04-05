@@ -36,9 +36,9 @@
    *  definitions, and `DEFINE_PS_TABLES_DATA' to provide both proper array
    *  declarations and definitions.
    */
-#include "freetype/pstables.h"
 #define  DEFINE_PS_TABLES
 #define  DEFINE_PS_TABLES_DATA
+#include "freetype/pstables.h"
 
 #include "freetype/psnamerr.h"
 
