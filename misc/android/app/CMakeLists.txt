@@ -1,24 +1,6 @@
-#
-# Copyright (C) The Android Open Source Project
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
 cmake_minimum_required(VERSION 3.4.1)
 
-# build native_app_glue as a static lib
 set(${CMAKE_C_FLAGS}, "${CMAKE_C_FLAGS}")
-# now build app's shared lib
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -Wall -Werror")
 
 add_library(classicube SHARED
@@ -36,7 +18,6 @@ add_library(classicube SHARED
         ../../src/_cff.c
         ../../src/_ftsynth.c
         ../../src/String.c
-        ../../src/LWidgets.c
         ../../src/Options.c
         ../../src/Drawer2D.c
         ../../src/Server.c
@@ -47,7 +28,6 @@ add_library(classicube SHARED
         ../../src/World.c
         ../../src/SelOutlineRenderer.c
         ../../src/Platform_Posix.c
-        ../../src/LScreens.c
         ../../src/_truetype.c
         ../../src/_ftglyph.c
         ../../src/Model.c
@@ -55,9 +35,7 @@ add_library(classicube SHARED
         ../../src/Vectors.c
         ../../src/HeldBlockRenderer.c
         ../../src/Inventory.c
-        ../../src/Launcher.c
         ../../src/Block.c
-        ../../src/LWeb.c
         ../../src/Stream.c
         ../../src/Lighting.c
         ../../src/Resources.c
@@ -93,13 +71,11 @@ add_library(classicube SHARED
         ../../src/SelectionBox.c
         ../../src/EnvRenderer.c
         ../../src/Animations.c
-        ../../src/LBackend.c
         ../../src/SystemFonts.c
         ../../src/Commands.c
         ../../src/EntityRenderers.c
         ../../src/Audio_SLES.c
         ../../src/TouchUI.c
-        ../../src/LBackend_Android.c
         ../../src/InputHandler.c
         ../../src/MenuOptions.c
         ../../src/FancyLighting.c
