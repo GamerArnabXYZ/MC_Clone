@@ -755,8 +755,7 @@ static void MainScreen_Activated(struct LScreen* s_) {
 				SwitchToSettings,         main_btnOptions);
 	s->btnResume.OnHover   = MainScreen_ResumeHover;
 	s->btnResume.OnUnhover = MainScreen_ResumeUnhover;
-
-
+}
 
 static void MainScreen_Load(struct LScreen* s_) {
 	/* Load saved username */

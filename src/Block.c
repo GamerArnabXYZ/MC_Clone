@@ -15,6 +15,7 @@
 #include "String_.h"
 #include "Platform.h"
 
+#include "Options.h"
 struct _BlockLists Blocks;
 
 /*########################################################################################################################*
