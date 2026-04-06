@@ -70,6 +70,7 @@ jobs:
           #  https://github.com/skanti/Android-Manual-Build-Command-Line/blob/master/hello-jni/CMakeLists.txt
           
           # compile java files into multiple .class files
+          mkdir -p $ROOT_DIR/misc/android/app/src/main/obj
           cd $ROOT_DIR/misc/android/app/src/main/java/com/classicube
           javac *.java -d $ROOT_DIR/misc/android/app/src/main/obj -classpath $SDK_ROOT/android.jar --release 8
           
