@@ -66,7 +66,15 @@ jobs:
           javac *.java -d $ROOT_DIR/misc/android/app/src/main/obj -classpath $SDK_ROOT/android.jar --release 8
 
           cd $ROOT_DIR/misc/android/app/src/main
-          echo -n "${{ secrets.ANDROID_SIGNING_KEY_BASE64 }}" | base64 --decode > debug.keystore
+
+          # Generate fresh PKCS12 keystore (apksigner requires this format)
+          keytool -genkeypair \
+            -keystore release.keystore \
+            -storetype pkcs12 \
+            -alias voxelcraft \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass voxelcraft123 \
+            -dname "CN=VoxelCraft,O=ArnabLabZ,C=BD"
 
           $TOOLS_ROOT/dx --dex --output=classes.dex ./obj
           $TOOLS_ROOT/aapt package -f -M AndroidManifest.xml -S res -F vc-unsigned.apk -I $SDK_ROOT/android.jar
@@ -77,8 +85,13 @@ jobs:
             lib/x86/libvoxelcraft.so \
             lib/x86_64/libvoxelcraft.so
 
-          $TOOLS_ROOT/zipalign -f 4 vc-unsigned.apk vc-signed.apk
-          $TOOLS_ROOT/apksigner sign --ks debug.keystore --ks-pass pass:android vc-signed.apk
+          $TOOLS_ROOT/zipalign -f 4 vc-unsigned.apk vc-aligned.apk
+          $TOOLS_ROOT/apksigner sign \
+            --ks release.keystore \
+            --ks-key-alias voxelcraft \
+            --ks-pass pass:voxelcraft123 \
+            --out vc-signed.apk \
+            vc-aligned.apk
           cp vc-signed.apk $ROOT_DIR/src/VoxelCraft.apk
 
       - uses: ./.github/actions/upload_build
