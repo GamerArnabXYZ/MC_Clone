@@ -1,4 +1,4 @@
-name: Build & Deploy Webclient
+name: Build & Deploy VoxelCraft Web
 
 on:
   push:
@@ -22,7 +22,7 @@ jobs:
 
       - name: Compile webclient
         run: |
-          emcc src/*.c src/webclient/*.c -o classisphere.js \
+          emcc src/*.c src/webclient/*.c -o voxelcraft.js \
             -s WASM=0 \
             -s NO_EXIT_RUNTIME=1 \
             -s LEGACY_VM_SUPPORT=1 \
@@ -42,21 +42,21 @@ jobs:
             -s EXPORTED_FUNCTIONS='["_main","_interop_LoadIndexedDB"]' \
             -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]'
 
-          sed -i 's|/static/default.zip|texpacks/default.zip|g' classisphere.js
-          COUNT=$(grep -c "texpacks/default.zip" classisphere.js || echo "0")
+          sed -i 's|/static/default.zip|texpacks/default.zip|g' voxelcraft.js
+          COUNT=$(grep -c "texpacks/default.zip" voxelcraft.js || echo "0")
           echo "Texture URL replacements: $COUNT"
           if [ "$COUNT" = "0" ]; then echo "WARNING: sed replace may have failed!"; fi
 
-          sed -i 's#eventHandler.useCapture);#{ useCapture: eventHandler.useCapture, passive: false });#g' classisphere.js
+          sed -i 's#eventHandler.useCapture);#{ useCapture: eventHandler.useCapture, passive: false });#g' voxelcraft.js
 
-          cp classisphere.js ClassiCube.js
-          echo "Build done!"; ls -lh classisphere.js
+          cp voxelcraft.js VoxelCraft.js
+          echo "Build done!"; ls -lh voxelcraft.js
 
       - name: Create deployment structure (JS only)
         run: |
           mkdir -p deploy
-          cp classisphere.js deploy/
-          cp ClassiCube.js deploy/
+          cp voxelcraft.js deploy/
+          cp VoxelCraft.js deploy/
           echo "Deployment structure created (no assets copied)"
           ls -la deploy/
 
@@ -74,11 +74,11 @@ jobs:
           keep_files: true
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
-          commit_message: 'Deploy ClassiSphere - ${{ github.sha }}'
+          commit_message: 'Deploy VoxelCraft - ${{ github.sha }}'
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: classisphere-web-client
+          name: voxelcraft-web-client
           path: deploy/
           retention-days: 30

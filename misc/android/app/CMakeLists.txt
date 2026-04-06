@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.4.1)
 set(${CMAKE_C_FLAGS}, "${CMAKE_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11 -Wall -Werror")
 
-add_library(classicube SHARED
+add_library(voxelcraft SHARED
         ../../src/IsometricDrawer.c
         ../../src/Builder.c
         ../../src/ExtMath.c
@@ -204,7 +204,7 @@ add_library(classicube SHARED
         ../../third_party/bearssl/x509_minimal_full.c
         )
 
-target_link_libraries(classicube
+target_link_libraries(voxelcraft
     EGL
     GLESv2
     log)

@@ -5,7 +5,7 @@
 # Configurable options
 #---------------------------------------------------------------------------------
 # Name of the final output
-TARGET 			= ClassiCube
+TARGET = VoxelCraft
 # List of directories containing source code
 SOURCE_DIRS		= src src/ios third_party/bearssl
 
