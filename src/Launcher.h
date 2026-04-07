@@ -1,5 +1,6 @@
 #ifndef CC_LAUNCHER_H
 #define CC_LAUNCHER_H
+#ifndef CC_DISABLE_LAUNCHER
 #include "Bitmap.h"
 CC_BEGIN_HEADER
 
@@ -91,4 +92,5 @@ cc_bool Launcher_Tick(void);
 void Launcher_Finish(void);
 
 CC_END_HEADER
+#endif /* CC_DISABLE_LAUNCHER */
 #endif

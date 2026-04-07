@@ -179,7 +179,7 @@ static PackedCol ButtonWidget_BackColor(struct ButtonWidget* w) {
 	struct LauncherTheme theme;
 
 	if (id) return w->color;
-#ifdef CC_BUILD_WEB /* TODO refactor web handling */
+#if defined CC_BUILD_WEB || defined CC_DISABLE_LAUNCHER
 	return w->color;
 #else
 	/* Avoid white button background */
