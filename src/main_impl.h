@@ -84,7 +84,7 @@ static void RunGame(void) {
 }
 
 static void RunLauncher(void) {
-#ifndef CC_BUILD_WEB
+#if !defined CC_BUILD_WEB && !defined CC_DISABLE_LAUNCHER
 	Launcher_Setup();
 	/* NOTE: Make sure to keep delay same as hardcoded delay in Launcher_Tick */
 	while (Launcher_Tick()) { Thread_Sleep(10); }
@@ -180,7 +180,7 @@ cc_string args[GAME_MAX_CMDARGS];
 	if (argsCount == 0)
 		return ARG_RESULT_RUN_LAUNCHER;
 
-#ifndef CC_BUILD_WEB
+#if !defined CC_BUILD_WEB && !defined CC_DISABLE_LAUNCHER
 	/* :[hash] - auto join server with the given hash */
 	if (argsCount == 1 && args[0].buffer[0] == ':') {
 		args[0] = String_UNSAFE_SubstringAt(&args[0], 1);

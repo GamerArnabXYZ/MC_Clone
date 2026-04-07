@@ -176,18 +176,17 @@ static void ButtonWidget_Render(void* widget) {
 
 static PackedCol ButtonWidget_BackColor(struct ButtonWidget* w) {
 	GfxResourceID id = Gui.ClassicTexture ? Gui.GuiClassicTex : Gui.GuiTex;
-	struct LauncherTheme theme;
-
 	if (id) return w->color;
 #if defined CC_BUILD_WEB || defined CC_DISABLE_LAUNCHER
 	return w->color;
 #else
-	/* Avoid white button background */
-	LauncherTheme_Load(&theme);
-
-	return PackedCol_Make(BitmapCol_R(theme.ButtonForeColor), 
-						  BitmapCol_G(theme.ButtonForeColor), 
-						  BitmapCol_B(theme.ButtonForeColor), 255);
+	{
+		struct LauncherTheme theme;
+		LauncherTheme_Load(&theme);
+		return PackedCol_Make(BitmapCol_R(theme.ButtonForeColor),
+							  BitmapCol_G(theme.ButtonForeColor),
+							  BitmapCol_B(theme.ButtonForeColor), 255);
+	}
 #endif
 }
 
