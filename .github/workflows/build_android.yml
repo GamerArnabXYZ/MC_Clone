@@ -10,6 +10,9 @@ concurrency:
   group: ${{ github.ref }}-android
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   build:
     timeout-minutes: 10
@@ -38,74 +41,77 @@ jobs:
           SRCS: "src/*.c src/android/*.c third_party/bearssl/*.c"
         run: |
           LATEST_FLAG=-DCC_COMMIT_SHA=\"${GITHUB_SHA::9}\"
-
           DROID_FLAGS="-fPIC -shared -s -O1 -fvisibility=hidden -rdynamic -funwind-tables"
 
           ROOT_DIR=$PWD
           NDK_ROOT="/opt/android-sdk-linux/ndk/25.2.9519653/toolchains/llvm/prebuilt/linux-x86_64/bin"
           TOOLS_ROOT=$ROOT_DIR/build-tools
           SDK_ROOT="/opt/android-sdk-linux/platforms/android-34"
+          MAIN_DIR=$ROOT_DIR/misc/android/app/src/main
 
-          $NDK_ROOT/armv7a-linux-androideabi19-clang ${{ env.SRCS }} $COMMON_FLAGS $DROID_FLAGS -march=armv5 -rtlib=libgcc -L $ROOT_DIR/build-tools/runtime ${{ env.LIBS }} $LATEST_FLAG -o vc-droid-arm_16
+          # Compile native .so for each ABI
           $NDK_ROOT/armv7a-linux-androideabi19-clang ${{ env.SRCS }} $COMMON_FLAGS $DROID_FLAGS -mfpu=vfp3-d16 ${{ env.LIBS }} $LATEST_FLAG -o vc-droid-arm_32
-          $NDK_ROOT/aarch64-linux-android21-clang   ${{ env.SRCS }} $COMMON_FLAGS $DROID_FLAGS ${{ env.LIBS }} $LATEST_FLAG -o vc-droid-arm_64
-          $NDK_ROOT/i686-linux-android21-clang      ${{ env.SRCS }} $COMMON_FLAGS $DROID_FLAGS ${{ env.LIBS }} $LATEST_FLAG -o vc-droid-x86_32
-          $NDK_ROOT/x86_64-linux-android21-clang    ${{ env.SRCS }} $COMMON_FLAGS $DROID_FLAGS ${{ env.LIBS }} $LATEST_FLAG -o vc-droid-x86_64
+          $NDK_ROOT/aarch64-linux-android21-clang    ${{ env.SRCS }} $COMMON_FLAGS $DROID_FLAGS ${{ env.LIBS }} $LATEST_FLAG -o vc-droid-arm_64
 
-          cd $ROOT_DIR/misc/android/app/src/main
-          mkdir -p lib/armeabi lib/armeabi-v7a lib/arm64-v8a lib/x86 lib/x86_64
-          cp $ROOT_DIR/vc-droid-arm_16 lib/armeabi/libvoxelcraft.so
-          cp $ROOT_DIR/vc-droid-arm_32 lib/armeabi-v7a/libvoxelcraft.so
-          cp $ROOT_DIR/vc-droid-arm_64 lib/arm64-v8a/libvoxelcraft.so
-          cp $ROOT_DIR/vc-droid-x86_32 lib/x86/libvoxelcraft.so
-          cp $ROOT_DIR/vc-droid-x86_64 lib/x86_64/libvoxelcraft.so
-
-          # compile java files
-          mkdir -p $ROOT_DIR/misc/android/app/src/main/obj
-          cd $ROOT_DIR/misc/android/app/src/main/java/com/voxelcraft
-          javac *.java -d $ROOT_DIR/misc/android/app/src/main/obj -classpath $SDK_ROOT/android.jar --release 8
-
-          cd $ROOT_DIR/misc/android/app/src/main
-
-          # Generate fresh PKCS12 keystore (apksigner requires this format)
+          # Generate fresh PKCS12 keystore
           keytool -genkeypair \
-            -keystore release.keystore \
+            -keystore $ROOT_DIR/release.keystore \
             -storetype pkcs12 \
             -alias voxelcraft \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass voxelcraft123 \
             -dname "CN=VoxelCraft,O=ArnabLabZ,C=BD"
 
-          $TOOLS_ROOT/dx --dex --output=classes.dex ./obj
-          $TOOLS_ROOT/aapt package -f -M AndroidManifest.xml -S res -F vc-unsigned.apk -I $SDK_ROOT/android.jar
-          $TOOLS_ROOT/aapt add -f vc-unsigned.apk classes.dex \
-            lib/armeabi/libvoxelcraft.so \
-            lib/armeabi-v7a/libvoxelcraft.so \
-            lib/arm64-v8a/libvoxelcraft.so \
-            lib/x86/libvoxelcraft.so \
-            lib/x86_64/libvoxelcraft.so
+          # Compile Java
+          mkdir -p $MAIN_DIR/obj
+          cd $MAIN_DIR/java/com/voxelcraft
+          javac *.java -d $MAIN_DIR/obj -classpath $SDK_ROOT/android.jar --release 8
 
-          $TOOLS_ROOT/zipalign -f 4 vc-unsigned.apk vc-aligned.apk
+          cd $MAIN_DIR
+          $TOOLS_ROOT/dx --dex --output=classes.dex ./obj
+
+          # --- Build arm64-v8a APK ---
+          mkdir -p lib/arm64-v8a
+          cp $ROOT_DIR/vc-droid-arm_64 lib/arm64-v8a/libvoxelcraft.so
+
+          $TOOLS_ROOT/aapt package -f -M AndroidManifest.xml -S res -F unsigned-arm64.apk -I $SDK_ROOT/android.jar
+          $TOOLS_ROOT/aapt add -f unsigned-arm64.apk classes.dex lib/arm64-v8a/libvoxelcraft.so
+          $TOOLS_ROOT/zipalign -f 4 unsigned-arm64.apk aligned-arm64.apk
           $TOOLS_ROOT/apksigner sign \
-            --ks release.keystore \
+            --ks $ROOT_DIR/release.keystore \
             --ks-key-alias voxelcraft \
             --ks-pass pass:voxelcraft123 \
-            --out vc-signed.apk \
-            vc-aligned.apk
-          cp vc-signed.apk $ROOT_DIR/src/VoxelCraft.apk
+            --out $ROOT_DIR/app-arm64-v8a-release.apk \
+            aligned-arm64.apk
 
-      - uses: ./.github/actions/upload_build
-        with:
-          SOURCE_FILE: 'src/VoxelCraft.apk'
-          DEST_NAME: 'VoxelCraft.apk'
+          # --- Build armeabi-v7a APK ---
+          rm -rf lib
+          mkdir -p lib/armeabi-v7a
+          cp $ROOT_DIR/vc-droid-arm_32 lib/armeabi-v7a/libvoxelcraft.so
 
-      - uses: ./.github/actions/notify_success
-        with:
-          DESTINATION_URL: '${{ secrets.NOTIFY_URL }}'
-          WORKFLOW_NAME: 'android'
+          $TOOLS_ROOT/aapt package -f -M AndroidManifest.xml -S res -F unsigned-arm32.apk -I $SDK_ROOT/android.jar
+          $TOOLS_ROOT/aapt add -f unsigned-arm32.apk classes.dex lib/armeabi-v7a/libvoxelcraft.so
+          $TOOLS_ROOT/zipalign -f 4 unsigned-arm32.apk aligned-arm32.apk
+          $TOOLS_ROOT/apksigner sign \
+            --ks $ROOT_DIR/release.keystore \
+            --ks-key-alias voxelcraft \
+            --ks-pass pass:voxelcraft123 \
+            --out $ROOT_DIR/app-armeabi-v7a-release.apk \
+            aligned-arm32.apk
 
-      - uses: ./.github/actions/notify_failure
-        if: failure()
+          echo "APKs ready:"
+          ls -lh $ROOT_DIR/app-*.apk
+
+      - name: Create GitHub Pre-Release
+        uses: softprops/action-gh-release@v2
         with:
-          NOTIFY_MESSAGE: 'Failed to produce VoxelCraft android build'
-          WEBHOOK_URL: '${{ secrets.WEBHOOK_URL }}'
+          tag_name: build-${{ github.run_number }}
+          name: "VoxelCraft Build #${{ github.run_number }}"
+          body: |
+            🤖 Auto build from commit `${{ github.sha }}`
+            - `app-arm64-v8a-release.apk` → Modern devices (64-bit)
+            - `app-armeabi-v7a-release.apk` → Older devices (32-bit)
+          prerelease: true
+          files: |
+            app-arm64-v8a-release.apk
+            app-armeabi-v7a-release.apk
