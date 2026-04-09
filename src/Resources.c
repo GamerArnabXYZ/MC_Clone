@@ -13,6 +13,7 @@
 #include "Http.h"
 #include "Game.h"
 #include "Audio.h"
+#include "Bitmap.h"
 
 /* Represents a set of assets/resources */
 /* E.g. music set, sounds set, textures set */
