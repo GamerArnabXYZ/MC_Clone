@@ -14,6 +14,7 @@ Multiplayer, login, and launcher completely removed.
 
 static void SetupProgram(int argc, char** argv) {
 	Logger_WarnFunc = Logger_DialogWarn;
+	Window_PreInit();
 	Options_Load();
 }
 
