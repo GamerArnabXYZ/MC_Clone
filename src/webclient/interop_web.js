@@ -196,7 +196,7 @@ mergeInto(LibraryManager.library, {
   interop_AsyncDownloadTexturePack__deps: ['fetchTexturePackAsync'],
   interop_AsyncDownloadTexturePack: function (rawPath) {
     var path = UTF8ToString(rawPath);
-    var url  = '/static/default.zip';
+    var url  = 'texpacks/default.zip';
     Module.setStatus('Downloading textures.. (1/2)');
     
     _fetchTexturePackAsync(url, 

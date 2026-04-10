@@ -42,23 +42,19 @@ jobs:
             -s EXPORTED_FUNCTIONS='["_main","_interop_LoadIndexedDB"]' \
             -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]'
 
-          sed -i 's|/static/default.zip|texpacks/default.zip|g' voxelcraft.js
-          COUNT=$(grep -c "texpacks/default.zip" voxelcraft.js || echo "0")
-          echo "Texture URL replacements: $COUNT"
-          if [ "$COUNT" = "0" ]; then echo "WARNING: sed replace may have failed!"; fi
-
           sed -i 's#eventHandler.useCapture);#{ useCapture: eventHandler.useCapture, passive: false });#g' voxelcraft.js
 
           cp voxelcraft.js VoxelCraft.js
           echo "Build done!"; ls -lh voxelcraft.js
 
-      - name: Create deployment structure (JS only)
+      - name: Create deployment structure
         run: |
-          mkdir -p deploy
+          mkdir -p deploy/texpacks
           cp voxelcraft.js deploy/
           cp VoxelCraft.js deploy/
-          echo "Deployment structure created (no assets copied)"
-          ls -la deploy/
+          cp texpacks/default.zip deploy/texpacks/default.zip
+          echo "Deployment structure created"
+          ls -la deploy/ deploy/texpacks/
 
       - name: Add timestamp file to force commit
         run: |

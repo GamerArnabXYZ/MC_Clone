@@ -43,6 +43,10 @@ import android.view.View;
 import android.view.Window;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.IOException;
 
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
@@ -174,6 +178,31 @@ public class MainActivity extends Activity
 	// static to persist across activity destroy/create
 	static boolean gameRunning;
 
+	void copyAssetsToGameDir() {
+		try {
+			File dataDir = getExternalFilesDir(null);
+			if (dataDir == null) dataDir = getFilesDir();
+			
+			// Copy texpacks/default.zip if not already present
+			File texDir = new File(dataDir, "texpacks");
+			texDir.mkdirs();
+			File defZip = new File(texDir, "default.zip");
+			if (!defZip.exists()) {
+				InputStream is = getAssets().open("default.zip");
+				FileOutputStream fos = new FileOutputStream(defZip);
+				byte[] buf = new byte[8192];
+				int len;
+				while ((len = is.read(buf)) > 0) fos.write(buf, 0, len);
+				fos.close(); is.close();
+				Log.i("VoxelCraft", "Copied default.zip to " + defZip.getAbsolutePath());
+			} else {
+				Log.i("VoxelCraft", "default.zip already exists");
+			}
+		} catch (IOException e) {
+			Log.e("VoxelCraft", "Failed to copy assets: " + e.getMessage());
+		}
+	}
+
 	void startGameAsync() {
 		Log.i("VoxelCraft", "handing off to native..");
 		try {
@@ -185,6 +214,7 @@ public class MainActivity extends Activity
 		}
 		
 		gameRunning = true;
+		copyAssetsToGameDir();
 		runGameAsync();
 	}
 	

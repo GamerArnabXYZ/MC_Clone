@@ -82,7 +82,7 @@ jobs:
             mkdir -p lib/$ABI
             cp $ROOT_DIR/$SO_SRC lib/$ABI/libvoxelcraft.so
 
-            $TOOLS_ROOT/aapt package -f -M AndroidManifest.xml -S res -F unsigned-$ABI.apk -I $SDK_ROOT/android.jar
+            $TOOLS_ROOT/aapt package -f -M AndroidManifest.xml -S res -A $ROOT_DIR/texpacks -F unsigned-$ABI.apk -I $SDK_ROOT/android.jar
             $TOOLS_ROOT/aapt add -f unsigned-$ABI.apk classes.dex lib/$ABI/libvoxelcraft.so
             $TOOLS_ROOT/zipalign -f 4 unsigned-$ABI.apk aligned-$ABI.apk
             $TOOLS_ROOT/apksigner sign \

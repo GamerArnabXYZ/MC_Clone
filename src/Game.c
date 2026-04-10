@@ -494,7 +494,7 @@ static void Game_Load(void) {
 	TexturePack_ExtractCurrent(true);
 	if (TexturePack_DefaultMissing) {
 		Window_ShowDialog("Missing file",
-			"Both default.zip and classicube.zip are missing,\n try downloading resources first.\n\nClassiCube will still run, but without any textures.");
+			"Both default.zip and classicube.zip are missing,\n try downloading resources first.\n\nVoxelCraft will still run, but without any textures.");
 	}
 	Gfx_WarnIfNecessary();
 
