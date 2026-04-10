@@ -902,10 +902,10 @@ void Game_Setup(void) {
 	int width  = Options_GetInt(OPT_WINDOW_WIDTH,  0, DisplayInfo.Width,  0);
 	int height = Options_GetInt(OPT_WINDOW_HEIGHT, 0, DisplayInfo.Height, 0);
 
-	/* No custom resolution has been set */
+	/* No custom resolution has been set - use full screen size */
 	if (width == 0 || height == 0) {
-		width = 854; height = 480;
-		if (DisplayInfo.Width < 854) width = 640;
+		width  = DisplayInfo.Width  ? DisplayInfo.Width  : 854;
+		height = DisplayInfo.Height ? DisplayInfo.Height : 480;
 	}
 	
 	String_InitArray(title, titleBuffer);

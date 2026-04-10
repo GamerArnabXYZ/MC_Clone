@@ -17,10 +17,11 @@ static cc_bool winCreated;
 
 static jmethodID JAVA_openKeyboard, JAVA_setKeyboardText, JAVA_closeKeyboard;
 static jmethodID JAVA_getWindowState, JAVA_enterFullscreen, JAVA_exitFullscreen;
-static jmethodID JAVA_showAlert, JAVA_setRequestedOri;
+static jmethodID JAVA_showAlert, JAVA_setRequestedOri, JAVA_quitApp;
 static jmethodID JAVA_openFileDialog, JAVA_saveFileDialog;
 static jmethodID JAVA_processedSurfaceDestroyed, JAVA_processEvents;
 static jmethodID JAVA_getDpiX, JAVA_getDpiY, JAVA_setupForGame;
+static jmethodID JAVA_getScreenWidth, JAVA_getScreenHeight;
 static jmethodID JAVA_getClipboardText, JAVA_setClipboardText;
 
 static int32_t (*_ANativeWindow_lock)(ANativeWindow* window, ANativeWindow_Buffer* oBuffer, ARect* ioDirtyBounds);
@@ -344,10 +345,11 @@ void Window_Show(void) { } /* Window already visible */
 void Window_SetSize(int width, int height) { }
 
 void Window_RequestClose(void) {
+	JNIEnv* env;
 	Window_Main.Exists = false;
 	Event_RaiseVoid(&WindowEvents.Closing);
-	/* TODO: Do we need to call finish here */
-	/* ANativeActivity_finish(app->activity); */
+	Java_GetCurrentEnv(env);
+	Java_ICall_Void(env, JAVA_quitApp, NULL);
 }
 
 void Window_ProcessEvents(float delta) {
@@ -663,7 +665,9 @@ static void CacheJavaMethodRefs(JNIEnv* env) {
 
 	JAVA_getDpiX      = Java_GetIMethod(env, "getDpiX", "()F");
 	JAVA_getDpiY      = Java_GetIMethod(env, "getDpiY", "()F");
-	JAVA_setupForGame = Java_GetIMethod(env, "setupForGame", "()V");
+	JAVA_setupForGame    = Java_GetIMethod(env, "setupForGame",    "()V");
+	JAVA_getScreenWidth  = Java_GetIMethod(env, "getScreenWidth",  "()I");
+	JAVA_getScreenHeight = Java_GetIMethod(env, "getScreenHeight", "()I");
 
 	JAVA_processedSurfaceDestroyed = Java_GetIMethod(env, "processedSurfaceDestroyed", "()V");
 	JAVA_processEvents             = Java_GetIMethod(env, "processEvents",             "()V");
@@ -675,6 +679,7 @@ static void CacheJavaMethodRefs(JNIEnv* env) {
 	
 	JAVA_getClipboardText = Java_GetIMethod(env, "getClipboardText", "()Ljava/lang/String;");
 	JAVA_setClipboardText = Java_GetIMethod(env, "setClipboardText", "(Ljava/lang/String;)V");
+	JAVA_quitApp          = Java_GetIMethod(env, "quitApp",           "()V");
 }
 
 void Window_PreInit(void) {
@@ -700,6 +705,8 @@ void Window_Init(void) {
 	DisplayInfo.Depth  = 32;
 	DisplayInfo.ScaleX = Java_ICall_Float(env, JAVA_getDpiX, NULL);
 	DisplayInfo.ScaleY = Java_ICall_Float(env, JAVA_getDpiY, NULL);
+	DisplayInfo.Width  = Java_ICall_Int(env, JAVA_getScreenWidth,  NULL);
+	DisplayInfo.Height = Java_ICall_Int(env, JAVA_getScreenHeight, NULL);
 }
 
 void Window_Free(void) { }

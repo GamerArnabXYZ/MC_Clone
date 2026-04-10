@@ -561,6 +561,15 @@ public class MainActivity extends Activity
 		});
 	}
 	
+	public void quitApp() {
+		runOnUiThread(new Runnable() {
+			public void run() {
+				finishAndRemoveTask();
+				System.exit(0);
+			}
+		});
+	}
+
 	public void startOpen(String url) {
 		// ACTION_VIEW, resolveActivity, getPackageManager, startActivity - API level 1
 		Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
@@ -705,6 +714,8 @@ public class MainActivity extends Activity
 	// One device also gave differing x/y DPI which stuffs up the movement overlay
 	public float getDpiX() { return getMetrics().density; }
 	public float getDpiY() { return getMetrics().density; }
+	public int getScreenWidth()  { return getMetrics().widthPixels; }
+	public int getScreenHeight() { return getMetrics().heightPixels; }
 
 	final Semaphore dialogSem = new Semaphore(0, true);
 	
