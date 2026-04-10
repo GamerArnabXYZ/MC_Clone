@@ -175,7 +175,7 @@ public class MainActivity extends Activity
 	static boolean gameRunning;
 
 	void startGameAsync() {
-		Log.i("CC_WIN", "handing off to native..");
+		Log.i("VoxelCraft", "handing off to native..");
 		try {
 			System.loadLibrary("voxelcraft");
 		} catch (UnsatisfiedLinkError ex) {
@@ -193,9 +193,9 @@ public class MainActivity extends Activity
 		// requestWindowFeature - API level 1
 		// setSoftInputMode, SOFT_INPUT_STATE_UNSPECIFIED, SOFT_INPUT_ADJUST_RESIZE - API level 3
 		input = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-		Log.i("CC_WIN", "CREATE EVENT");
+		Log.i("VoxelCraft", "CREATE EVENT");
 		Window window = getWindow();
-		Log.i("CC_WIN", "GAME RUNNING?" + gameRunning);
+		Log.i("VoxelCraft", "GAME RUNNING?" + gameRunning);
 		//window.takeSurface(this);
 		//window.takeInputQueue(this);
 		// TODO: Should this be RGBA_8888??
@@ -331,7 +331,7 @@ public class MainActivity extends Activity
 	
 	@Override
 	public void onDestroy() {
-		Log.i("CC_WIN", "APP DESTROYED");
+		Log.i("VoxelCraft", "APP DESTROYED");
 		super.onDestroy();
 		pushCmd(CMD_APP_DESTROY);
 	}
@@ -448,22 +448,22 @@ public class MainActivity extends Activity
 	class CCSurfaceCallback implements SurfaceHolder.Callback {
 		public void surfaceCreated(SurfaceHolder holder) {
 			// getSurface - API level 1
-			Log.i("CC_WIN", "win created " + holder.getSurface());
+			Log.i("VoxelCraft", "win created " + holder.getSurface());
 			Rect r = holder.getSurfaceFrame();
 			MainActivity.this.pushCmd(CMD_WIN_CREATED, holder);
 		}
 		
 		public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
 			// getSurface - API level 1
-			Log.i("CC_WIN", "win changed " + holder.getSurface());
+			Log.i("VoxelCraft", "win changed " + holder.getSurface());
 			Rect r = holder.getSurfaceFrame();
 			MainActivity.this.pushCmd(CMD_WIN_RESIZED, holder);
 		}
 		
 		public void surfaceDestroyed(SurfaceHolder holder) {
 			// getSurface, removeCallback - API level 1
-			Log.i("CC_WIN", "win destroyed " + holder.getSurface());
-			Log.i("CC_WIN", "cur view " + curView);
+			Log.i("VoxelCraft", "win destroyed " + holder.getSurface());
+			Log.i("VoxelCraft", "cur view " + curView);
 			holder.removeCallback(this);
 			
 			//08-02 21:03:02.967: E/BufferQueueProducer(1350): [SurfaceView - com.voxelcraft.VoxelCraft/com.voxelcraft.MainActivity#0] disconnect: not connected (req=2)
@@ -486,7 +486,7 @@ public class MainActivity extends Activity
 	class CCSurfaceCallback2 extends CCSurfaceCallback implements SurfaceHolder.Callback2 {
 		public void surfaceRedrawNeeded(SurfaceHolder holder) {
 			// getSurface - API level 1
-			Log.i("CC_WIN", "win dirty " + holder.getSurface());
+			Log.i("VoxelCraft", "win dirty " + holder.getSurface());
 			MainActivity.this.pushCmd(CMD_WIN_REDRAW);
 		}
 	}

@@ -31,6 +31,7 @@ static jmethodID JAVA_getUUID;
 void android_main(void) {
 	Platform_LogConst("Main loop started!");
 	SetupProgram(0, NULL);
+	Platform_LogConst("SetupProgram complete, starting game loop");
 	for (;;) { RunProgram(0, NULL); }
 }
 
