@@ -79,9 +79,8 @@ src/ClassiCube*
 src/screenshots
 src/fontscache.txt
 
-# ClassiCube game files
+# ClassiCube game files (ignore runtime-generated files, NOT repo assets)
 audio
-texpacks
 maps
 texturecache
 logs
@@ -89,6 +88,10 @@ options.txt
 ClassiCube*
 screenshots
 fontscache.txt
+
+# Allow root texpacks folder (bundled assets)
+!texpacks/
+!texpacks/**
 
 # DOS files
 CWSDPMI.EXE
