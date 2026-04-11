@@ -1610,15 +1610,14 @@ static void TexturePackScreen_LoadEntries(struct ListScreen* s) {
 }
 
 static void TexturePackScreen_UploadCallback(const cc_string* path) {
-#ifdef CC_BUILD_WEB
 	cc_string relPath = *path;
 	Utils_UNSAFE_GetFilename(&relPath);
-
-	ListScreen_Reload(&ListScreen);
+#ifdef CC_BUILD_WEB
 	TexturePack_SetDefault(&relPath);
 #else
-	String_Copy(&TexturePack_Path, path);
+	TexturePack_SetDefault(&relPath);
 #endif
+	ListScreen_Reload(&ListScreen);
 	TexturePack_ExtractCurrent(true);
 }
 
