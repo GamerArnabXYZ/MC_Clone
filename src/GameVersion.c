@@ -26,47 +26,39 @@ static const cc_uint8 v4_inventory[] = {
 	BLOCK_SAPLING, BLOCK_SAND, BLOCK_GRAVEL,
 };
 
-static const cc_uint8 v7_hotbar[INVENTORY_BLOCKS_PER_HOTBAR] = {
+static const cc_uint8 empty_hotbar[INVENTORY_BLOCKS_PER_HOTBAR] = {
 	BLOCK_STONE, BLOCK_COBBLE, BLOCK_BRICK, BLOCK_DIRT, BLOCK_WOOD, BLOCK_LOG, BLOCK_LEAVES, BLOCK_GLASS, BLOCK_SLAB
 };
-static const cc_uint8 v6_hotbar[INVENTORY_BLOCKS_PER_HOTBAR] = {
-	BLOCK_STONE, BLOCK_COBBLE, BLOCK_DIRT, BLOCK_WOOD, BLOCK_LOG, BLOCK_LEAVES, BLOCK_SAPLING, BLOCK_DANDELION, BLOCK_ROSE
-};
-static const cc_uint8 v5_hotbar[INVENTORY_BLOCKS_PER_HOTBAR] = {
-	BLOCK_STONE, BLOCK_DIRT, BLOCK_SPONGE, BLOCK_WOOD, BLOCK_SAPLING, BLOCK_LOG, BLOCK_LEAVES, BLOCK_GLASS, BLOCK_GRAVEL
-};
-static const cc_uint8 v4_hotbar[INVENTORY_BLOCKS_PER_HOTBAR] = {
-	BLOCK_STONE, BLOCK_DIRT, BLOCK_COBBLE, BLOCK_WOOD, BLOCK_SAPLING, BLOCK_LOG, BLOCK_LEAVES, BLOCK_SAND, BLOCK_GRAVEL
-};
+
 
 static const struct GameVersion version_cpe  = { 
 	"0.30",     true, VERSION_CPE, 
 	PROTOCOL_0030, BLOCK_MAX_CPE, 
-	10, sizeof(v7_inventory), NULL,         v7_hotbar,
+	10, sizeof(v7_inventory), NULL,         empty_hotbar,
 	"texpacks/default.zip"
 };
 static const struct GameVersion version_0030 = {
 	"0.30",    false, VERSION_0030,
 	PROTOCOL_0030, BLOCK_OBSIDIAN, 
-	 9, sizeof(v7_inventory), v7_inventory, v7_hotbar,
+	 9, sizeof(v7_inventory), v7_inventory, empty_hotbar,
 	 "texpacks/default.zip"
 };
 static const struct GameVersion version_0023 = {
 	"0.0.23a", false, VERSION_0023,
 	PROTOCOL_0020, BLOCK_GOLD, 
-	 8, sizeof(v6_inventory), v6_inventory, v6_hotbar,
+	 8, sizeof(v6_inventory), v6_inventory, empty_hotbar,
 	 "texpacks/default_0023.zip"
 };
 static const struct GameVersion version_0019 = {
 	"0.0.19a", false, VERSION_0019,
 	PROTOCOL_0019, BLOCK_GLASS, 
-	 6, sizeof(v5_inventory), v5_inventory, v5_hotbar,
+	 6, sizeof(v5_inventory), v5_inventory, empty_hotbar,
 	 "texpacks/default_0023.zip"
 };
 static const struct GameVersion version_0017 = {
 	"0.0.17a", false, VERSION_0017,
 	PROTOCOL_0017, BLOCK_LEAVES, 
-	 6, sizeof(v4_inventory), v4_inventory, v4_hotbar,
+	 6, sizeof(v4_inventory), v4_inventory, empty_hotbar,
 	 "texpacks/default_0023.zip"
 };
 

@@ -2995,3 +2995,69 @@ void NostalgiaMenuScreen_Show(void) {
 void TexIdsOverlay_Show(void) { }
 void UrlWarningOverlay_Show(const cc_string* url) { }
 #endif
+
+
+/*########################################################################################################################*
+*-------------------------------------------------------HomeScreen--------------------------------------------------------*
+/*########################################################################################################################*
+*-------------------------------------------------------HomeScreen--------------------------------------------------------*
+*#########################################################################################################################*/
+static struct HomeScreen {
+	Screen_Body
+	struct ButtonWidget btnPlay;
+	struct TextWidget   title;
+	struct TextWidget   subtitle;
+	struct Widget* _widgets[3];
+} HomeScreen;
+
+static void HomeScreen_StartGame(void* screen, void* w) {
+	Gui_Remove((struct Screen*)&HomeScreen);
+	SPConnection_DoStart();
+}
+
+static void HomeScreen_ContextRecreated(void* screen) {
+	struct HomeScreen* s = (struct HomeScreen*)screen;
+	struct FontDesc titleFont, subtitleFont;
+	Screen_UpdateVb(s);
+	Gui_MakeTitleFont(&titleFont);
+	Gui_MakeBodyFont(&subtitleFont);
+	TextWidget_SetConst(&s->title,    "VoxelCraft",         &titleFont);
+	TextWidget_SetConst(&s->subtitle, "Singleplayer",       &subtitleFont);
+	ButtonWidget_SetConst(&s->btnPlay, "Play",              &titleFont);
+	Font_Free(&titleFont);
+	Font_Free(&subtitleFont);
+}
+
+static void HomeScreen_Layout(void* screen) {
+	struct HomeScreen* s = (struct HomeScreen*)screen;
+	Widget_SetLocation(&s->title,    ANCHOR_CENTRE, ANCHOR_CENTRE, 0, -100);
+	Widget_SetLocation(&s->subtitle, ANCHOR_CENTRE, ANCHOR_CENTRE, 0,  -60);
+	Widget_SetLocation(&s->btnPlay,  ANCHOR_CENTRE, ANCHOR_CENTRE, 0,   30);
+}
+
+static void HomeScreen_Init(void* screen) {
+	struct HomeScreen* s = (struct HomeScreen*)screen;
+	s->widgets    = s->_widgets;
+	s->numWidgets = 0;
+	s->maxWidgets = Array_Elems(s->_widgets);
+	TextWidget_Add(s,   &s->title);
+	TextWidget_Add(s,   &s->subtitle);
+	ButtonWidget_Add(s, &s->btnPlay, 200, HomeScreen_StartGame);
+	s->maxVertices = Screen_CalcDefaultMaxVertices(s);
+}
+
+static const struct ScreenVTABLE HomeScreen_VTABLE = {
+	HomeScreen_Init,    Screen_NullUpdate, Screen_NullFunc,
+	MenuScreen_Render2, Screen_BuildMesh,
+	Menu_InputDown,     Screen_InputUp,    Screen_TKeyPress, Screen_TText,
+	Menu_PointerDown,   Screen_PointerUp,  Menu_PointerMove, Screen_TMouseScroll,
+	HomeScreen_Layout,  Screen_ContextLost, HomeScreen_ContextRecreated
+};
+
+void HomeScreen_Show(void) {
+	struct HomeScreen* s = &HomeScreen;
+	s->grabsInput = true;
+	s->closable   = false;
+	s->VTABLE     = &HomeScreen_VTABLE;
+	Gui_Add((struct Screen*)s, GUI_PRIORITY_MENU);
+}

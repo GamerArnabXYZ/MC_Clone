@@ -77,5 +77,6 @@ void Server_RetrieveTexturePack(const cc_string* url);
 /* Path of map to automatically load in singleplayer */
 extern cc_string SP_AutoloadMap;
 
+void SPConnection_DoStart(void);
 CC_END_HEADER
 #endif

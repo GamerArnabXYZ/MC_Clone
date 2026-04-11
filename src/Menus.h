@@ -105,3 +105,5 @@ void MenuOptionsScreen_AddNum(struct MenuOptionsScreen* s, const char* name,
 
 CC_END_HEADER
 #endif
+
+void HomeScreen_Show(void);

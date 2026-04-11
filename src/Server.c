@@ -117,7 +117,7 @@ static void Ping_Reset(void) {
 static char autoloadBuffer[FILENAME_SIZE];
 cc_string SP_AutoloadMap = String_FromArray(autoloadBuffer);
 
-static void SPConnection_BeginConnect(void) {
+void SPConnection_DoStart(void) {
 	static const cc_string logName = String_FromConst("Singleplayer");
 	const struct MapGenerator* gen;
 	int seed, horSize, verSize;
@@ -126,7 +126,6 @@ static void SPConnection_BeginConnect(void) {
 	Chat_SetLogName(&logName);
 	Game_UseCPEBlocks = Game_Version.HasCPE;
 
-	/* For when user drops a map file onto ClassiCube.exe */
 	if (SP_AutoloadMap.length) {
 		Map_LoadFrom(&SP_AutoloadMap); return;
 	}
@@ -152,6 +151,10 @@ static void SPConnection_BeginConnect(void) {
 	seed = Random_Next(&rnd, Int32_MaxValue);
 
 	Gen_Start(gen, seed, horSize, verSize, horSize);
+}
+
+static void SPConnection_BeginConnect(void) {
+	HomeScreen_Show();
 }
 
 static char sp_lastCol;
