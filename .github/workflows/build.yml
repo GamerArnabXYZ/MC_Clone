@@ -16,9 +16,9 @@ concurrency:
 
 jobs:
 
-  # ──────────────────────────────────────────────────────────────────────────
+  # ════════════════════════════════════════════════════════════════════════════
   android:
-    name: Android build
+    name: 🤖 Android Build
     timeout-minutes: 20
     runs-on: ubuntu-latest
 
@@ -31,37 +31,47 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Android SDK
+      # Use ndk-build action — installs NDK cleanly with correct paths
+      - name: Set up Android NDK 27
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r27c
+          add-to-path: false
+
+      - name: Set up Android SDK + platform 36 + build-tools 36
         uses: android-actions/setup-android@v3
 
-      - name: Install NDK 27 + SDK platform 36 + build-tools 36
+      - name: Install SDK platform 36 + build-tools 36
         run: |
-          sdkmanager --install \
-            "ndk;27.2.12479018" \
-            "platforms;android-36" \
-            "build-tools;36.0.0"
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
-      - name: Download legacy build tools (aapt, dx, zipalign)
+      - name: Download legacy build tools (aapt, dx)
         shell: bash
         run: |
           mkdir build-tools-legacy
           wget -q https://github.com/ClassiCube/rpi-compiling-stuff/raw/main/build-tools.zip
           unzip -q build-tools.zip -d build-tools-legacy
-          chmod +x build-tools-legacy/aapt build-tools-legacy/dx build-tools-legacy/zipalign
+          chmod +x build-tools-legacy/aapt build-tools-legacy/dx
 
       - name: Compile native libraries (arm32 + arm64 + x86_64)
         shell: bash
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: |
           LATEST_FLAG=-DCC_COMMIT_SHA=\"${GITHUB_SHA::9}\"
           COMMON_FLAGS="-O2 -fno-stack-protector -fno-math-errno -Qn"
           DROID_FLAGS="-fPIC -shared -fvisibility=hidden -rdynamic -funwind-tables"
           LIBS="-lGLESv2 -lEGL -lm -llog"
           SRCS="src/*.c src/android/*.c third_party/bearssl/*.c"
-          NDK_ROOT="$ANDROID_SDK_ROOT/ndk/27.2.12479018/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          NDK_BIN="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
 
-          $NDK_ROOT/armv7a-linux-androideabi19-clang $SRCS $COMMON_FLAGS $DROID_FLAGS -mfpu=vfp3-d16 $LIBS $LATEST_FLAG -o libvoxelcraft-arm32.so
-          $NDK_ROOT/aarch64-linux-android21-clang    $SRCS $COMMON_FLAGS $DROID_FLAGS $LIBS $LATEST_FLAG -o libvoxelcraft-arm64.so
-          $NDK_ROOT/x86_64-linux-android21-clang     $SRCS $COMMON_FLAGS $DROID_FLAGS $LIBS $LATEST_FLAG -o libvoxelcraft-x86_64.so
+          echo "NDK path: $NDK_BIN"
+          ls "$NDK_BIN" | grep clang | head -5
+
+          $NDK_BIN/armv7a-linux-androideabi19-clang $SRCS $COMMON_FLAGS $DROID_FLAGS -mfpu=vfp3-d16 $LIBS $LATEST_FLAG -o libvoxelcraft-arm32.so
+          $NDK_BIN/aarch64-linux-android21-clang    $SRCS $COMMON_FLAGS $DROID_FLAGS $LIBS $LATEST_FLAG -o libvoxelcraft-arm64.so
+          $NDK_BIN/x86_64-linux-android21-clang     $SRCS $COMMON_FLAGS $DROID_FLAGS $LIBS $LATEST_FLAG -o libvoxelcraft-x86_64.so
 
           echo "=== .so sizes ==="
           ls -lh libvoxelcraft-*.so
@@ -104,7 +114,7 @@ jobs:
               --ks-pass pass:voxelcraft123 \
               --out $ROOT_DIR/$OUT_APK \
               aligned-$ABI.apk
-            echo "Built: $OUT_APK ($(du -sh $ROOT_DIR/$OUT_APK | cut -f1))"
+            echo "✅ Built: $OUT_APK ($(du -sh $ROOT_DIR/$OUT_APK | cut -f1))"
           }
 
           sign_apk "arm64-v8a"   "libvoxelcraft-arm64.so"  "app-arm64-v8a-release.apk"
@@ -121,7 +131,7 @@ jobs:
 
             | APK | Target |
             |-----|--------|
-            | `app-arm64-v8a-release.apk` | Modern 64-bit devices (Android 4.4+) ✅ Recommended |
+            | `app-arm64-v8a-release.apk` | Modern 64-bit devices ✅ Recommended |
             | `app-armeabi-v7a-release.apk` | Older 32-bit devices |
             | `app-x86_64-release.apk` | x86_64 emulators / Chromebooks |
           prerelease: true
@@ -140,9 +150,9 @@ jobs:
             app-x86_64-release.apk
           retention-days: 30
 
-  # ──────────────────────────────────────────────────────────────────────────
+  # ════════════════════════════════════════════════════════════════════════════
   web:
-    name: Web build + deploy
+    name: 🌐 Web Build + Deploy
     timeout-minutes: 30
     runs-on: ubuntu-latest
     container:
@@ -151,10 +161,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Compile webclient
+      - name: Compile webclient → classisphere.js
         shell: bash
         run: |
-          emcc src/*.c src/webclient/*.c -o voxelcraft.js \
+          emcc src/*.c src/webclient/*.c -o classisphere.js \
             -s WASM=0 \
             -s NO_EXIT_RUNTIME=1 \
             -s LEGACY_VM_SUPPORT=1 \
@@ -174,81 +184,17 @@ jobs:
             -s EXPORTED_FUNCTIONS='["_main","_interop_LoadIndexedDB"]' \
             -s EXPORTED_RUNTIME_METHODS='["ccall","cwrap"]'
 
-          sed -i 's#eventHandler.useCapture);#{ useCapture: eventHandler.useCapture, passive: false });#g' voxelcraft.js
-          cp voxelcraft.js VoxelCraft.js
-          echo "Build done!"; ls -lh voxelcraft.js
-
-      - name: Generate index.html
-        shell: bash
-        run: |
-          cat > index.html << 'HTMLEOF'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-            <meta name="mobile-web-app-capable" content="yes">
-            <meta name="apple-mobile-web-app-capable" content="yes">
-            <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-            <meta name="theme-color" content="#1a1a2e">
-            <title>VoxelCraft</title>
-            <style>
-              * { margin: 0; padding: 0; box-sizing: border-box; }
-              html, body { width: 100%; height: 100%; background: #1a1a2e; overflow: hidden; touch-action: none; }
-              #game-container { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-              canvas { display: block; width: 100% !important; height: 100% !important; image-rendering: pixelated; touch-action: none; }
-              #loading-screen {
-                position: fixed; inset: 0; background: #1a1a2e;
-                display: flex; flex-direction: column; align-items: center; justify-content: center;
-                z-index: 9999; font-family: 'Courier New', monospace; color: #fff;
-              }
-              #loading-screen h1 { font-size: clamp(24px, 6vw, 48px); letter-spacing: 4px; margin-bottom: 24px; text-shadow: 0 0 20px #4fc3f7; }
-              #loading-bar-wrap { width: min(320px, 80vw); height: 8px; background: #333; border-radius: 4px; overflow: hidden; margin-bottom: 16px; }
-              #loading-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #4fc3f7, #81d4fa); border-radius: 4px; transition: width 0.3s ease; animation: pulse 1.5s ease-in-out infinite; }
-              @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-              #loading-text { font-size: 14px; color: #90caf9; letter-spacing: 1px; }
-            </style>
-          </head>
-          <body>
-            <div id="loading-screen">
-              <h1>VOXELCRAFT</h1>
-              <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
-              <div id="loading-text">Loading...</div>
-            </div>
-            <div id="game-container">
-              <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
-            </div>
-            <script>
-              var Module = {
-                canvas: (function() { return document.getElementById('canvas'); })(),
-                setStatus: function(text) {
-                  var bar = document.getElementById('loading-bar');
-                  var txt = document.getElementById('loading-text');
-                  var screen = document.getElementById('loading-screen');
-                  if (!text) { if (screen) screen.style.display = 'none'; return; }
-                  var match = text.match(/(\d+(\.\d+)?)\/(\d+)/);
-                  if (match && bar) bar.style.width = (parseInt(match[1]) / parseInt(match[3]) * 100) + '%';
-                  if (txt) txt.textContent = text;
-                },
-                monitorRunDependencies: function(left) {
-                  if (!left) { var b = document.getElementById('loading-bar'); if (b) b.style.width = '100%'; }
-                }
-              };
-            </script>
-            <script src="VoxelCraft.js"></script>
-          </body>
-          </html>
-          HTMLEOF
-          echo "index.html generated ✅"
+          sed -i 's#eventHandler.useCapture);#{ useCapture: eventHandler.useCapture, passive: false });#g' classisphere.js
+          echo "✅ Build done!"; ls -lh classisphere.js
 
       - name: Create deployment structure
         shell: bash
         run: |
           mkdir -p deploy/texpacks
-          cp voxelcraft.js deploy/
-          cp VoxelCraft.js deploy/
-          cp index.html deploy/
-          cp texpacks/default.zip deploy/texpacks/default.zip
+          cp classisphere.js        deploy/
+          cp index.html             deploy/
+          cp play.html              deploy/
+          cp texpacks/default.zip   deploy/texpacks/default.zip
           date -u --iso-8601=seconds | sed 's/+00:00/Z/' > deploy/update.txt
           echo "Deploy contents:"; ls -lh deploy/ deploy/texpacks/
 
@@ -262,7 +208,7 @@ jobs:
           keep_files: true
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
-          commit_message: 'Deploy VoxelCraft - ${{ github.sha }}'
+          commit_message: 'Deploy VoxelCraft Web - ${{ github.sha }}'
 
       - name: Upload web artifact
         uses: actions/upload-artifact@v4
