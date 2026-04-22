@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 36
+    compileSdkVersion 35
     namespace 'com.voxelcraft.android.client'
 
     defaultConfig {
         applicationId 'com.voxelcraft.android.client'
         minSdkVersion 21
-        targetSdkVersion 36
+        targetSdkVersion 35
         versionCode 1380
         versionName "1.0"
 
