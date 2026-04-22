@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 35
+    compileSdkVersion 36
     namespace 'com.voxelcraft.android.client'
 
     ndkVersion "27.2.12479018"
@@ -9,7 +9,7 @@ android {
     defaultConfig {
         applicationId 'com.voxelcraft.android.client'
         minSdkVersion 21
-        targetSdkVersion 35
+        targetSdkVersion 36
         versionCode 1380
         versionName "1.0"
 
