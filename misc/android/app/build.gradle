@@ -4,6 +4,8 @@ android {
     compileSdkVersion 35
     namespace 'com.voxelcraft.android.client'
 
+    ndkVersion "27.2.12479018"
+
     defaultConfig {
         applicationId 'com.voxelcraft.android.client'
         minSdkVersion 21
