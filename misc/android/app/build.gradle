@@ -8,10 +8,14 @@ android {
         applicationId 'com.voxelcraft.android.client'
         minSdkVersion 21
         targetSdkVersion 36
+        versionCode 1380
+        versionName "1.0"
 
         externalNativeBuild {
             cmake {
-                arguments '-DANDROID_STL=c++_static'
+                arguments '-DANDROID_STL=c++_static',
+                          '-DANDROID_PLATFORM=android-21'
+                abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
             }
         }
     }
@@ -26,6 +30,16 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
                     'proguard-rules.pro'
+        }
+    }
+
+    // Generate separate APK per ABI
+    splits {
+        abi {
+            enable true
+            reset()
+            include 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+            universalApk false
         }
     }
 

@@ -230,3 +230,4 @@ UpgradeLog*.htm
 # Eclipse
 .cproject
 .project
+local.properties
