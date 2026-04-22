@@ -3252,7 +3252,7 @@ function _interop_SocketConnect(a, b, c) {
   }
   try {
     var e = b.split("/"), g = (_interop_IsHttpsOnly() ? "wss://" : "ws://") + e[0] + ":" + c + "/" + e.slice(1).join("/");
-    a = new WebSocket(g, "VoxelCraft");
+    a = new WebSocket(g, "ClassiCube");
     a.binaryType = "arraybuffer";
   } catch (f) {
     return SOCKETS.EHOSTUNREACH;
