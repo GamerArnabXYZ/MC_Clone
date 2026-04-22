@@ -9,12 +9,12 @@
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="18" />
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="18" />
   <uses-sdk
-      android:minSdkVersion="8"
-      android:targetSdkVersion="34"/>
-  
+      android:minSdkVersion="19"
+      android:targetSdkVersion="36"/>
+
   <application
       android:icon="@mipmap/ccicon"
-      android:label="VoxelCraft"
+      android:label="@string/app_name"
       android:hardwareAccelerated="true"
       android:resizeableActivity="false">
     <provider
@@ -25,7 +25,7 @@
 
     <activity
         android:name="com.voxelcraft.MainActivity"
-        android:label="VoxelCraft"
+        android:label="@string/app_name"
         android:screenOrientation="fullSensor"
         android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|keyboard|navigation|uiMode|density"
         android:exported="true"
