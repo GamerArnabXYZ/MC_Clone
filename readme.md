@@ -22,9 +22,9 @@ VoxelCraft aims to replicate the 2009 Minecraft Classic client while offering **
 
 You can **download VoxelCraft** [here](https://www.classicube.net/download/) and the very latest builds [here](https://www.classicube.net/nightlies/).
 
-![classic](https://github.com/VoxelCraft/VoxelCraft/assets/6509348/eedee53f-f53e-456f-b51c-92c62079eee0)
+![classic](https://github.com/ClassiCube/ClassiCube/assets/6509348/eedee53f-f53e-456f-b51c-92c62079eee0)
 
-![enhanced](https://github.com/VoxelCraft/VoxelCraft/assets/6509348/b2fe0e2b-5d76-41ab-909f-048d0ad15f37)
+![enhanced](https://github.com/ClassiCube/ClassiCube/assets/6509348/b2fe0e2b-5d76-41ab-909f-048d0ad15f37)
 
 
 # We need your help
@@ -71,7 +71,7 @@ And also runs on:
 * NetBSD - needs <code>libexecinfo</code> and <code>openal-soft</code> packages (can [download from here](https://www.classicube.net/download/#dl-nbsd))
 * OpenBSD - needs <code>libexecinfo</code> and <code>openal</code> packages
 * Solaris - needs <code>openal</code> packages
-* Haiku - needs <code>openal</code> package (if you have a GitHub account, can [download from here](https://github.com/VoxelCraft/VoxelCraft/actions/workflows/build_haiku.yml))
+* Haiku - needs <code>openal</code> package (if you have a GitHub account, can [download from here](https://github.com/ClassiCube/ClassiCube/actions/workflows/build_haiku.yml))
 * BeOS - untested on actual hardware
 * IRIX - needs <code>openal</code> packages
 * HPUX - tested on 11v3 IA64

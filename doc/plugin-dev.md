@@ -2,7 +2,7 @@ This document details how to compile a basic plugin in Visual Studio, MinGW, or 
 
 To find the functions and variables available for use in plugins, look for `CC_API`/`CC_VAR` in the .h files.
 
-[Source code of some actual plugins](https://github.com/VoxelCraft/VoxelCraft-Plugins/)
+[Source code of some actual plugins](https://github.com/ClassiCube/ClassiCube-Plugins/)
 
 ### Setup
 
@@ -220,7 +220,7 @@ To avoid this problem, you must
 1) Stop linking to `VoxelCraft` (e.g. for `MinGW`, remove the ` -L . -lVoxelCraft`)
 2) Load all functions and variables exported from VoxelCraft via `GetProcAddress` instead
 
-This is somewhat tedious to do - see [here](https://github.com/VoxelCraft/VoxelCraft-Plugins/) for some examples of plugins which do this
+This is somewhat tedious to do - see [here](https://github.com/ClassiCube/ClassiCube-Plugins/) for some examples of plugins which do this
 
 #### Compiling ultra small plugin DLLs - MinGW
 If you **ONLY** use code from the game (no external libraries and no C standard library functions):

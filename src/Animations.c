@@ -27,7 +27,7 @@ static void Animations_Update(int loc, struct Bitmap* bmp, int stride);
 
 #ifndef CC_BUILD_WEB
 /* Based off the incredible work from https://dl.dropboxusercontent.com/u/12694594/lava.txt
-	mirrored at https://github.com/VoxelCraft/VoxelCraft/wiki/Minecraft-Classic-lava-animation-algorithm
+	mirrored at https://github.com/ClassiCube/ClassiCube/wiki/Minecraft-Classic-lava-animation-algorithm
 	Water animation originally written by cybertoon, big thanks!
 */
 /*########################################################################################################################*
