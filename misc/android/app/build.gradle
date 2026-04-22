@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId 'com.voxelcraft.android.client'
-        minSdkVersion 19
+        minSdkVersion 21
         targetSdkVersion 36
 
         externalNativeBuild {

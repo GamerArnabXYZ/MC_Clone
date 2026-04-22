@@ -69,9 +69,9 @@ jobs:
           echo "NDK path: $NDK_BIN"
           ls "$NDK_BIN" | grep clang | head -5
 
-          $NDK_BIN/armv7a-linux-androideabi19-clang $SRCS $COMMON_FLAGS $DROID_FLAGS -mfpu=vfp3-d16 $LIBS $LATEST_FLAG -o libvoxelcraft-arm32.so
-          $NDK_BIN/aarch64-linux-android21-clang    $SRCS $COMMON_FLAGS $DROID_FLAGS $LIBS $LATEST_FLAG -o libvoxelcraft-arm64.so
-          $NDK_BIN/x86_64-linux-android21-clang     $SRCS $COMMON_FLAGS $DROID_FLAGS $LIBS $LATEST_FLAG -o libvoxelcraft-x86_64.so
+          $NDK_BIN/armv7a-linux-androideabi21-clang $SRCS $COMMON_FLAGS $DROID_FLAGS -mfpu=vfp3-d16 $LIBS $LATEST_FLAG -o libvoxelcraft-arm32.so
+          $NDK_BIN/aarch64-linux-android21-clang   $SRCS $COMMON_FLAGS $DROID_FLAGS $LIBS $LATEST_FLAG -o libvoxelcraft-arm64.so
+          $NDK_BIN/x86_64-linux-android21-clang    $SRCS $COMMON_FLAGS $DROID_FLAGS $LIBS $LATEST_FLAG -o libvoxelcraft-x86_64.so
 
           echo "=== .so sizes ==="
           ls -lh libvoxelcraft-*.so
