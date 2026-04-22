@@ -1,3 +1,6 @@
+#if defined(__linux__) && !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
 #include "Logger.h"
 #include "String_.h"
 #include "Platform.h"
@@ -32,6 +35,10 @@
 #ifdef CC_BUILD_DARWIN
 /* Need this to detect macOS < 10.4, and switch to NS* api instead if so */
 #include <AvailabilityMacros.h>
+#endif
+
+#if defined CC_BUILD_POSIX && !defined CC_BUILD_OS2
+#include <dlfcn.h>
 #endif
 
 /* Only show up to 50 frames in backtrace */
@@ -321,23 +328,15 @@ static void DumpFrame(cc_string* trace, void* addr) {
 /* TODO: actually implement this */
 static void DumpFrame(cc_string* trace, void* addr) {}
 #elif defined CC_BUILD_POSIX && !defined CC_BUILD_OS2
-/* need to define __USE_GNU for dladdr */
-#ifndef __USE_GNU
-#define __USE_GNU
-#endif
-#include <dlfcn.h>
-#undef __USE_GNU
-
 static void DumpFrame(cc_string* trace, void* addr) {
 	cc_string str; char strBuffer[384];
-	Dl_info s = { 0 };
-
+	Dl_info info = { 0 };
 	String_InitArray(str, strBuffer);
-	dladdr(addr, &s);
 
-	PrintFrame(&str, (cc_uintptr)addr, 
-				(cc_uintptr)s.dli_saddr, s.dli_sname, 
-				(cc_uintptr)s.dli_fbase, s.dli_fname);
+	dladdr(addr, &info);
+	PrintFrame(&str, (cc_uintptr)addr,
+				(cc_uintptr)info.dli_saddr, info.dli_sname,
+				(cc_uintptr)info.dli_fbase, info.dli_fname);
 	String_AppendString(trace, &str);
 	Logger_Log(&str);
 }

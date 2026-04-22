@@ -42,12 +42,13 @@ else
 endif
 
 default: android
+.PHONY: default web android release clean
 
 web:
 	$(MAKE) $(TARGET) PLAT=web
 
 android:
-	$(MAKE) -f misc/android/Makefile
+	cd misc/android && ./gradlew assembleDebug
 
 release:
 	$(MAKE) $(TARGET) RELEASE=1
@@ -61,11 +62,17 @@ clean:
 $(BUILD_DIRS):
 	mkdir -p $@
 
+ifeq ($(PLAT),)
+$(ENAME):
+	@echo "Desktop/native target is incomplete in this fork."
+	@echo "Use one of: 'make android' or 'make web'."
+else
 $(ENAME): $(BUILD_DIRS) $(OBJECTS)
 	$(LINK) $(LDFLAGS) -o $@$(OEXT) $(OBJECTS) $(EXTRA_LIBS) $(LIBS)
 	@echo "----------------------------------------------------"
 	@echo "Successfully compiled: $(ENAME)"
 	@echo "----------------------------------------------------"
+endif
 
 ifeq ($(TRACK_DEPENDENCIES), 1)
 
