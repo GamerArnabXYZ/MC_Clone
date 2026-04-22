@@ -4,7 +4,7 @@
 CC_BEGIN_HEADER
 
 /* Imports/exports a world and associated metadata from/to a particular map file format.
-   Copyright 2014-2025 ClassiCube | Licensed under BSD-3
+   Copyright 2014-2025 VoxelCraft | Licensed under BSD-3
 */
 
 struct Stream; 
@@ -30,7 +30,7 @@ CC_API struct MapImporter* MapImporter_Find(const cc_string* path);
 CC_API cc_result Map_LoadFrom(const cc_string* path);
 
 /* Exports a world to a .cw ClassicWorld map file. */
-/* Compatible with ClassiCube/ClassicalSharp */
+/* Compatible with VoxelCraft/ClassicalSharp */
 cc_result Cw_Save(struct Stream* stream);
 /* Exports a world to a .schematic Schematic map file */
 /* Used by MCEdit and other tools */

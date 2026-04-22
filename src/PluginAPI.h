@@ -1,4 +1,4 @@
-// When compiling external plugins, functions/variables need to be imported from ClassiCube exe instead of exporting them
+// When compiling external plugins, functions/variables need to be imported from VoxelCraft exe instead of exporting them
 #ifdef _WIN32
 	// need to specifically declare as imported for MSVC
 	#define CC_API __declspec(dllimport)

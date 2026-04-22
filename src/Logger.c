@@ -59,7 +59,7 @@ void Logger_DialogWarn(const cc_string* msg) {
 const char* Logger_DialogTitle = "Error";
 Logger_DoWarn Logger_WarnFunc  = Logger_DialogWarn;
 
-/* Returns a description for some ClassiCube specific error codes */
+/* Returns a description for some VoxelCraft specific error codes */
 static const char* GetCCErrorDesc(cc_result res) {
 	switch (res) {
 	case ERR_END_OF_STREAM:    return "End of stream";
@@ -749,7 +749,7 @@ void Logger_DoAbort(cc_result result, const char* raw_msg, void* ctx) {
 	cc_string msg; char msgBuffer[3070 + 1];
 	String_InitArray_NT(msg, msgBuffer);
 
-	String_AppendConst(&msg, "ClassiCube crashed." _NL);
+	String_AppendConst(&msg, "VoxelCraft crashed." _NL);
 	if (raw_msg) String_Format1(&msg, "Reason: %c" _NL, raw_msg);
 	#ifdef CC_COMMIT_SHA
 	String_AppendConst(&msg, "Commit SHA: " CC_COMMIT_SHA GFX_BACKEND _NL);
@@ -766,7 +766,7 @@ void Logger_DoAbort(cc_result result, const char* raw_msg, void* ctx) {
 	if (cefCrash) {
 		String_AppendConst(&msg, "The crash may have been caused by the CEF plugin.\nYou may want to try completely reinstalling it.\n\n");
 	} else {
-		String_AppendConst(&msg, "Please report this on the ClassiCube forums or Discord.\n\n");
+		String_AppendConst(&msg, "Please report this on the VoxelCraft forums or Discord.\n\n");
 	}
 	if (ctx) DumpRegisters(ctx);
 
@@ -787,7 +787,7 @@ void Logger_DoAbort(cc_result result, const char* raw_msg, void* ctx) {
 void Logger_FailToStart(const char* raw_msg) {
 	cc_string msg = String_FromReadonly(raw_msg);
 
-	Window_ShowDialog("Failed to start ClassiCube", raw_msg);
+	Window_ShowDialog("Failed to start VoxelCraft", raw_msg);
 	LogCrashHeader();
 	Logger_Log(&msg);
 	Process_Exit(1);

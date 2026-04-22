@@ -559,7 +559,7 @@ cc_result Png_Decode(struct Bitmap* bmp, struct Stream* stream) {
 			/* With other colourspaces, the length of a scanline might be less than the width of a 32 bpp image row */
 			/* Therefore image expansion can only be done after all the rows have been reconstructed, and must */
 			/*  be done backwards to avoid overwriting any source data that has yet to be processed */
-			/* This is slightly slower, but the majority of images ClassiCube encounters are RGBA anyways */
+			/* This is slightly slower, but the majority of images VoxelCraft encounters are RGBA anyways */
 			if (colorspace != PNG_COLOR_RGB_A) {
 				for (curY = bmp->height - 1; curY >= 0; curY--) {
 					cc_uint8* scanline = &data[curY * scanlineBytes];

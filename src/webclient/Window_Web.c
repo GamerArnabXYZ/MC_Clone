@@ -770,7 +770,7 @@ void GLContext_Create(void) {
 
 	ctx_handle = emscripten_webgl_create_context("#canvas", &attribs);
 	if (!ctx_handle) {
-		Window_ShowDialog("WebGL unsupported", "WebGL is required to run ClassiCube");
+		Window_ShowDialog("WebGL unsupported", "WebGL is required to run VoxelCraft");
 		Process_Exit(0x57474C20);
 	}
 

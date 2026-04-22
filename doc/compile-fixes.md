@@ -1,7 +1,7 @@
 Visual studio unsupported platform toolset
 ---------------------
 To fix the ```Error MSB8036 The Windows SDK version 5.1 was not found. Install the required version of Windows SDK or change the SDK version in the project property pages or by right-clicking the solution and selecting "Retarget solution"```
-* Right click **ClassiCube** project (it's under the *Solution 'ClassiCube'* in the *Solution Explorer* pane)
+* Right click **VoxelCraft** project (it's under the *Solution 'VoxelCraft'* in the *Solution Explorer* pane)
 * Click **Properties**
 * Make sure you are in **General** tab under **Configuration Properties**
 * You should see a dropdown named **Platform Toolset**. Click on it.

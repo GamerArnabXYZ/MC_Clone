@@ -68,24 +68,24 @@ build/
 [Pp]rofilingSessions/
 src/.vs/
 
-# ClassiCube game files
+# VoxelCraft game files
 src/audio
 src/texpacks
 src/maps
 src/texturecache
 src/logs
 src/options.txt
-src/ClassiCube*
+src/VoxelCraft*
 src/screenshots
 src/fontscache.txt
 
-# ClassiCube game files (ignore runtime-generated files, NOT repo assets)
+# VoxelCraft game files (ignore runtime-generated files, NOT repo assets)
 audio
 maps
 texturecache
 logs
 options.txt
-ClassiCube*
+VoxelCraft*
 screenshots
 fontscache.txt
 
@@ -103,12 +103,12 @@ CCDOS.EXE
 !android/app/src/main/java/com/classicube
 
 # Flatpak wrapper needs to be included
-!misc/flatpak/ClassiCubeLauncher
+!misc/flatpak/VoxelCraftLauncher
 
 # UWP files needs to be included
-!misc/UWP/ClassiCube-UWP.sln
-!misc/UWP/ClassiCube-UWP.vcxproj
-!misc/UWP/ClassiCube-UWP.vcxproj.filters
+!misc/UWP/VoxelCraft-UWP.sln
+!misc/UWP/VoxelCraft-UWP.vcxproj
+!misc/UWP/VoxelCraft-UWP.vcxproj.filters
 
 # CMake files
 CMakeFiles/

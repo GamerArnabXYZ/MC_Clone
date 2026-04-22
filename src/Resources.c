@@ -722,7 +722,7 @@ static void CCTextures_DownloadAssets(void) {
 }
 
 static const char* CCTextures_GetRequestName(int reqID) {
-	return reqID == ccTexturesReqID ? "ClassiCube textures" : NULL;
+	return reqID == ccTexturesReqID ? "VoxelCraft textures" : NULL;
 }
 
 
@@ -763,7 +763,7 @@ static void CCTextures_CheckStatus(void) {
 
 	ccTexturesDownloaded = true;
 	res = CCTextures_ExtractZip(&item);
-	if (res) Logger_SysWarn(res, "saving ClassiCube textures");
+	if (res) Logger_SysWarn(res, "saving VoxelCraft textures");
 
 	HttpRequest_Free(&item);
 }
@@ -787,7 +787,7 @@ static const struct AssetSet ccTexsAssetSet = {
 *----------------------------------------------------default.zip resources------------------------------------------------*
 *#########################################################################################################################*/
 #define ANIMS_TXT \
-"# This file defines the animations used in a texture pack for ClassiCube.\r\n" \
+"# This file defines the animations used in a texture pack for VoxelCraft.\r\n" \
 "# Each line is in the format : <TileX> <TileY> <FrameX> <FrameY> <Frame size> <Frames count> <Tick delay>\r\n" \
 "# - TileX and TileY are the coordinates of the tile in terrain.png that will be replaced by the animation frames.\r\n" \
 "#     Essentially, TileX and TileY are the remainder and quotient of an ID in F10 menu divided by 16\r\n" \
@@ -1135,7 +1135,7 @@ static void MCCTextures_CheckExistence(void) {
 	/* >= in case somehow have say "gui.png", "GUI.png" */
 	allZipEntriesExist = zipEntriesFound >= Array_Elems(defaultZipEntries);
 
-	/* Need touch.png from ClassiCube textures */
+	/* Need touch.png from VoxelCraft textures */
 	if (!allZipEntriesExist) ccTexturesExist = false;
 }
 

@@ -208,7 +208,7 @@ void GLContext_Create(void) {
 	}
 
 	if (!numConfig) {
-		Window_ShowDialog("Warning", "Failed to choose EGL config, ClassiCube may be unable to start");
+		Window_ShowDialog("Warning", "Failed to choose EGL config, VoxelCraft may be unable to start");
 		EGLint i;
 		eglGetConfigs(ctx_display, configs, 64, &numConfig);
 

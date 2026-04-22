@@ -361,7 +361,7 @@ cc_result Process_StartOpen(const cc_string* args) {
 	String_EncodeUtf8(str, args);
 
 	res = interop_OpenTab(str);
-	/* interop error code -> ClassiCube error code */
+	/* interop error code -> VoxelCraft error code */
 	if (res == 1) res = ERR_INVALID_OPEN_URL;
 	return res;
 }

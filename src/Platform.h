@@ -5,7 +5,7 @@ CC_BEGIN_HEADER
 
 /* 
 Abstracts platform specific memory management, I/O, etc
-Copyright 2014-2025 ClassiCube | Licensed under BSD-3
+Copyright 2014-2025 VoxelCraft | Licensed under BSD-3
 */
 
 #if defined CC_BUILD_WIN || defined CC_BUILD_WINCE || defined CC_BUILD_XBOX
@@ -91,7 +91,7 @@ extern cc_bool Process_OpenSupported;
 /*########################################################################################################################*
 *-----------------------------------------------------Updater functions---------------------------------------------------*
 *#########################################################################################################################*/
-#define UPDATE_FILE "ClassiCube.update"
+#define UPDATE_FILE "VoxelCraft.update"
 
 struct UpdaterBuild { 
 	const char* name; 

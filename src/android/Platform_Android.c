@@ -25,7 +25,7 @@ static jmethodID JAVA_getUUID;
 *#########################################################################################################################*/
 #include "../main_impl.h"
 
-// ClassiCube is just a native library on android,
+// VoxelCraft is just a native library on android,
 //   unlike most other platforms where it is the executable.
 // The activity java class is responsible for kickstarting the game
 void android_main(void) {

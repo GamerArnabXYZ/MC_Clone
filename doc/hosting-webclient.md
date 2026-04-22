@@ -1,4 +1,4 @@
-Hosting your own version of the ClassiCube webclient is relatively straightforward
+Hosting your own version of the VoxelCraft webclient is relatively straightforward
 
 Only the following 3 files are required:
 1) A web page to initialise the game .js and display the game
@@ -15,7 +15,7 @@ For example, let's assume your website is setup like this:
 * `example.com/static/default.zip`
 
 For simplicitly,
-1) Download `cs.classicube.net/client/latest/ClassiCube.js`, then upload it to `static/classisphere.js` on the webserver
+1) Download `cs.classicube.net/client/latest/VoxelCraft.js`, then upload it to `static/classisphere.js` on the webserver
 2) Download `classicube.net/static/default.zip`, then upload it to `static/default.zip` on the webserver
 
 The play.html page is the trickiest part, because how to implement this is website-specific. (depends on how the website is styled, what webserver is used, what programming language is used to generate the html, etc)

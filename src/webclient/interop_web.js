@@ -348,9 +348,9 @@ mergeInto(LibraryManager.library, {
   },
   interop_LoadIndexedDB: function() {
     // previously you were required to add interop_LoadIndexedDB to Module.preRun array
-    //  to load the indexedDB asynchronously *before* starting ClassiCube, because it
+    //  to load the indexedDB asynchronously *before* starting VoxelCraft, because it
     //  could not load indexedDB asynchronously
-    // however, as ClassiCube now loads IndexedDB asynchronously itself, this is
+    // however, as VoxelCraft now loads IndexedDB asynchronously itself, this is
     //   no longer necessary, but is kept around for backwards compatibility
   },
   interop_SaveNode__deps: ['IDBFS_getDB', 'IDBFS_storeRemoteEntry'],
@@ -595,7 +595,7 @@ mergeInto(LibraryManager.library, {
       var proto = _interop_IsHttpsOnly() ? 'wss://' : 'ws://';
       var url   = proto + parts[0] + ":" + port + "/" + parts.slice(1).join('/');
       
-      ws = new WebSocket(url, 'ClassiCube');
+      ws = new WebSocket(url, 'VoxelCraft');
       ws.binaryType = 'arraybuffer';
     } catch (e) {
       return SOCKETS.EHOSTUNREACH;

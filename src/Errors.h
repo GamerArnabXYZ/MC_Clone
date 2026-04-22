@@ -1,8 +1,8 @@
 #ifndef CC_ERRORS_H
 #define CC_ERRORS_H
 /*
-Provides a list list of internal ClassiCube errors
-Copyright 2014-2025 ClassiCube | Licensed under BSD-3
+Provides a list list of internal VoxelCraft errors
+Copyright 2014-2025 VoxelCraft | Licensed under BSD-3
 */
 
 /* NOTE: When adding errors, remember to keep Logger.c up to date! */

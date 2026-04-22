@@ -1,4 +1,4 @@
-Although ClassiCube strives to be as platform independent as possible, in some cases it will need to use system specific code
+Although VoxelCraft strives to be as platform independent as possible, in some cases it will need to use system specific code
 
 For instance:
 * Texture creation for 3D graphics rendering
@@ -8,7 +8,7 @@ For instance:
 
 For simplicity, related system specific code is grouped together as a Module (e.g. `Audio`), which can then be implemented using a backend (e.g. `WinMM`, `OpenAL`, `OpenSL ES`, etc)
 
-#### Note: By default, ClassiCube automatically selects the recommended backends for the system. <br> It is recommended that you do *NOT* change the backends unless you know exactly what you are doing.
+#### Note: By default, VoxelCraft automatically selects the recommended backends for the system. <br> It is recommended that you do *NOT* change the backends unless you know exactly what you are doing.
 
 Some systems may provide multiple potential backends for a Module. For example on Windows:
 * OpenGL could be used instead of Direct3D 9 for the 3D rendering backend

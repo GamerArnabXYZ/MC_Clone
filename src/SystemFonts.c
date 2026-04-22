@@ -47,7 +47,7 @@ static const cc_uint8 missing_cell[CELL_SIZE] = {
 };
 
 /* 8x8 font bitmap, represented with 1 bit for each pixel */
-/* Source: Goodly's texture pack for ClassiCube */
+/* Source: Goodly's texture pack for VoxelCraft */
 static const cc_uint8 font_bitmap[][CELL_SIZE] = {
 	  { 0x01,0x01,0x01,0x01,0x01,0x00,0x01,0x00 }, /* ! */
 	  { 0x05,0x05,0x05,0x00,0x00,0x00,0x00,0x00 }, /* " */

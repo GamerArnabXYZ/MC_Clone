@@ -1,8 +1,8 @@
 ## Introduction
 
-ClassiCube uses a custom string type rather than the standard C `char*` string in most places
+VoxelCraft uses a custom string type rather than the standard C `char*` string in most places
 
-ClassiCube strings (`cc_string`) are a struct with the following fields:
+VoxelCraft strings (`cc_string`) are a struct with the following fields:
 - `buffer` -> Pointer to 8 bit characters (unsigned [code page 437 indices](https://en.wikipedia.org/wiki/Code_page_437#Character_set))
 - `length` -> Number of characters currently used
 - `capacity` -> Maximum number of characters (i.e buffer size)
@@ -141,7 +141,7 @@ TODO
 
 ## C comparison
 
-A rough mapping of C string API to ClassiCube's string API:
+A rough mapping of C string API to VoxelCraft's string API:
 ```
 atof    -> Convert_ParseFloat
 strtof  -> Convert_ParseFloat
@@ -171,7 +171,7 @@ sprintf -> String_Format1/2/3/4
 
 ## C# comparison
 
-A rough mapping of C# string API to ClassiCube's string API:
+A rough mapping of C# string API to VoxelCraft's string API:
 ```
 byte.Parse   -> Convert_ParseUInt8
 ushort.Parse -> Convert_ParseUInt16
@@ -205,7 +205,7 @@ string.Format -> String_Format1/2/3/4
 
 ## C++ comparison
 
-A rough mapping of C++ std::string API to ClassiCube's string API:
+A rough mapping of C++ std::string API to VoxelCraft's string API:
 ```
 std::stof  -> Convert_ParseFloat
 std::stoi  -> Convert_ParseInt
@@ -305,7 +305,7 @@ const cc_string* GetString(void) {
 
 Depending on what functions are called in-between `GetString` and `Chat_Add`, `global_str` or its contents may be modified - which can result in an unexpected value being displayed in chat
 
-This potential issue is not just theoretical - it has actually resulted in several real bugs in ClassiCube itself
+This potential issue is not just theoretical - it has actually resulted in several real bugs in VoxelCraft itself
 
 As a general rule, for unsafe functions returning a string that may be mutated behind your back, you should try to maintain a reference to the string for as short of time as possible
 

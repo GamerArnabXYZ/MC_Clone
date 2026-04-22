@@ -895,7 +895,7 @@ static void OnInputDown(void* obj, int key, cc_bool was, struct InputDevice* dev
 }
 
 static void OnInputDownLegacy(void* obj, int key, cc_bool was, struct InputDevice* device) {
-	/* Event originated from ClassiCube, ignore it */
+	/* Event originated from VoxelCraft, ignore it */
 	if (device == &NormDevice) return;
 
 	/* Event originated from a plugin, convert it */

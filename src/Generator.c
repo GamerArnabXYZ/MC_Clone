@@ -25,7 +25,7 @@ volatile static cc_bool gen_done;
 /*     then the game thread would not get run at all until map generation */
 /*     completed - which is not a great user experience. */
 /*   To avoid that, on these systems, map generation may be divided into */
-/*     a series of steps so that ClassiCube can periodically switch back */
+/*     a series of steps so that VoxelCraft can periodically switch back */
 /*     to the game thread to ensure that the game itself still (slowly) runs. */
 #ifdef CC_BUILD_COOPTHREADED
 static int gen_step;

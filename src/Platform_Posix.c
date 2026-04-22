@@ -1111,7 +1111,7 @@ static cc_result Process_RawGetExePath(char* path, int* len) {
 }
 #elif defined CC_BUILD_IRIX || defined CC_BUILD_HPUX
 static cc_result Process_RawGetExePath(char* path, int* len) {
-	static cc_string file = String_FromConst("ClassiCube");
+	static cc_string file = String_FromConst("VoxelCraft");
 
 	/* TODO properly get exe path */
 	/* Maybe use PIOCOPENM from https://nixdoc.net/man-pages/IRIX/man4/proc.4.html */
@@ -1152,7 +1152,7 @@ cc_bool Updater_Clean(void) { return true; }
 	#if __aarch64__
 	const struct UpdaterInfo Updater_Info = { "", 1, { { "OpenGL ES", "cc-rpi64" } } };
 	#else
-	const struct UpdaterInfo Updater_Info = { "", 1, { { "OpenGL ES", "ClassiCube.rpi" } } };
+	const struct UpdaterInfo Updater_Info = { "", 1, { { "OpenGL ES", "VoxelCraft.rpi" } } };
 	#endif
 #elif defined CC_BUILD_LINUX
 	#if __x86_64__
@@ -1160,7 +1160,7 @@ cc_bool Updater_Clean(void) { return true; }
 		"&eModernGL is recommended for newer machines (2015 or later)", 2,
 		{
 			{ "ModernGL", "cc-nix64-gl2" },
-			{ "OpenGL",   "ClassiCube" }
+			{ "OpenGL",   "VoxelCraft" }
 		}
 	};
 	#elif __i386__
@@ -1168,7 +1168,7 @@ cc_bool Updater_Clean(void) { return true; }
 		"&eModernGL is recommended for newer machines (2015 or later)", 2,
 		{
 			{ "ModernGL", "cc-nix32-gl2" },
-			{ "OpenGL",   "ClassiCube.32" }
+			{ "OpenGL",   "VoxelCraft.32" }
 		}
 	};
 	#else
@@ -1180,7 +1180,7 @@ cc_bool Updater_Clean(void) { return true; }
 		"&eModernGL is recommended for newer machines (2015 or later)", 2,
 		{
 			{ "ModernGL", "cc-osx64-gl2" },
-			{ "OpenGL",   "ClassiCube.64.osx" }
+			{ "OpenGL",   "VoxelCraft.64.osx" }
 		}
 	};
 	#elif __i386__
@@ -1188,7 +1188,7 @@ cc_bool Updater_Clean(void) { return true; }
 		"&eModernGL is recommended for newer machines (2015 or later)", 2,
 		{
 			{ "ModernGL", "cc-osx32-gl2" },
-			{ "OpenGL",   "ClassiCube.osx" }
+			{ "OpenGL",   "VoxelCraft.osx" }
 		}
 	};
 	#else

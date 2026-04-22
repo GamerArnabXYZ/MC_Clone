@@ -225,7 +225,7 @@ float Math_CosF(float angle) {
  */
 
 /* NOTE: NaN/Infinity checking was removed from Cos/Sin functions, */
-/*  since ClassiCube does not care about the exact return value */
+/*  since VoxelCraft does not care about the exact return value */
 /*  from the mathematical functions anyways */
 
 /* Global constants */

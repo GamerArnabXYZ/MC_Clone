@@ -19,7 +19,7 @@ IMPLEMENTATION NOTES:
   * altering DEFAULT_GFX_BACKEND for the platform in Core.h
 - graphics backends are implemented in Graphics_GL1.c, Graphics_D3D9.c etc
    
-Copyright 2014-2025 ClassiCube | Licensed under BSD-3
+Copyright 2014-2025 VoxelCraft | Licensed under BSD-3
 */
 struct Bitmap;
 struct Stream;
@@ -279,7 +279,7 @@ IMPLEMENTATION NOTES:
 USAGE NOTES:
 	The default index buffer selects groups of 4 vertices (1 quad) to produce 2 triangles
 	  ( (0,1,2) (2,3,0)  (4,5,6) (6,7,4)  etc)
-	ClassiCube itself never uses a different index buffer, as it draws everything using quads
+	VoxelCraft itself never uses a different index buffer, as it draws everything using quads
 	However, plugins might alter the index buffer to draw geometry that doesn't use quads
 */
 

@@ -76,7 +76,7 @@
 
 
 #include <string.h>
-/* ClassiCube functions to avoid stdlib */
+/* VoxelCraft functions to avoid stdlib */
 extern int   cc_strncmp(const char* a, const char* b, size_t maxCount);
 extern int    cc_strcmp(const char* a, const char* b);
 extern size_t cc_strlen(const char* a);

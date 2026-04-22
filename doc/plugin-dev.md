@@ -2,7 +2,7 @@ This document details how to compile a basic plugin in Visual Studio, MinGW, or 
 
 To find the functions and variables available for use in plugins, look for `CC_API`/`CC_VAR` in the .h files.
 
-[Source code of some actual plugins](https://github.com/ClassiCube/ClassiCube-Plugins/)
+[Source code of some actual plugins](https://github.com/VoxelCraft/VoxelCraft-Plugins/)
 
 ### Setup
 
@@ -90,20 +90,20 @@ Then put `TestPlugin.so` into your game's `plugins` folder. Done.
 
 #### Setup
 
-1) Create `ClassiCube.exe` by either:
+1) Create `VoxelCraft.exe` by either:
     1) Compiling the game, see `Cross compiling for windows (32 bit)` in [main readme](/readme.md#cross-compiling-for-windows-32-bit)
-    2) Downloading 32 bit ClassiCube from https://www.classicube.net/download/#dl-win
+    2) Downloading 32 bit VoxelCraft from https://www.classicube.net/download/#dl-win
 2) Install the `mingw-w64-tools` package (if it isn't already)
-3) Generate the list of exported symbols from `ClassiCube.exe` by running:
-    * `gendef ClassiCube.exe`
+3) Generate the list of exported symbols from `VoxelCraft.exe` by running:
+    * `gendef VoxelCraft.exe`
 4) Create a linkable library from the exported symbols list by running: 
-    * `i686-w64-mingw32-dlltool -d ClassiCube.def -l libClassiCube.a -D ClassiCube.exe`
+    * `i686-w64-mingw32-dlltool -d VoxelCraft.def -l libVoxelCraft.a -D VoxelCraft.exe`
 
 TODO: also document alternate method of compiling the game using --out-implib
 
 #### Compiling
 
-`i686-w64-mingw32-gcc TestPlugin.c -o TestPlugin.dll -s -shared -L . -lClassiCube`
+`i686-w64-mingw32-gcc TestPlugin.c -o TestPlugin.dll -s -shared -L . -lVoxelCraft`
 
 Then put `TestPlugin.dll` into your game's `plugins` folder. Done.
 
@@ -111,20 +111,20 @@ Then put `TestPlugin.dll` into your game's `plugins` folder. Done.
 
 #### Setup
 
-1) Create `ClassiCube.exe` by either:
+1) Create `VoxelCraft.exe` by either:
     1) Compiling the game, see `Cross compiling for windows (64 bit)` in [main readme](/readme.md#cross-compiling-for-windows-64-bit)
-    2) Downloading 64 bit ClassiCube from https://www.classicube.net/download/#dl-win
+    2) Downloading 64 bit VoxelCraft from https://www.classicube.net/download/#dl-win
 2) Install the `mingw-w64-tools` package (if it isn't already)
-3) Generate the list of exported symbols from `ClassiCube.exe` by running:
-    * `gendef ClassiCube.exe`
+3) Generate the list of exported symbols from `VoxelCraft.exe` by running:
+    * `gendef VoxelCraft.exe`
 4) Create a linkable library from the exported symbols list by running: 
-    * `x86_64-w64-mingw32-dlltool -d ClassiCube.def -l libClassiCube.a -D ClassiCube.exe`
+    * `x86_64-w64-mingw32-dlltool -d VoxelCraft.def -l libVoxelCraft.a -D VoxelCraft.exe`
 
 TODO: also document alternate method of compiling the game using --out-implib
 
 #### Compiling
 
-`x86_64-w64-mingw32-gcc TestPlugin.c -o TestPlugin.dll -s -shared -L . -lClassiCube`
+`x86_64-w64-mingw32-gcc TestPlugin.c -o TestPlugin.dll -s -shared -L . -lVoxelCraft`
 
 Then put `TestPlugin.dll` into your game's `plugins` folder. Done.
 
@@ -146,8 +146,8 @@ TODO more detailed when I have some more time...
 #### Setup
 
 1) Compile the game, see `Compiling - Windows > using Visual Studio` in main readme
-2) Find the `ClassiCube.lib` that was generated when compiling the game. Usually it is in either `src\x64\Debug` or `src\x86\Debug`.
-3) Add a new `Empty Project` to the ClassiCube solution, then add the plugin .c files to it
+2) Find the `VoxelCraft.lib` that was generated when compiling the game. Usually it is in either `src\x64\Debug` or `src\x86\Debug`.
+3) Add a new `Empty Project` to the VoxelCraft solution, then add the plugin .c files to it
 
 Note: If the plugin provides a .vcxproj file, you can skip step 2 and just open that project file instead.
 
@@ -158,14 +158,14 @@ The simplest way of linking to the `.lib` file is simply adding the following co
 ```C
 #ifdef _MSC_VER
   #ifdef _WIN64
-    #pragma comment(lib, "[GAME SRC FOLDER]/x64/Debug/ClassiCube.lib")
+    #pragma comment(lib, "[GAME SRC FOLDER]/x64/Debug/VoxelCraft.lib")
   #else
-    #pragma comment(lib, "[GAME SRC FOLDER]/x86/Debug/ClassiCube.lib")
+    #pragma comment(lib, "[GAME SRC FOLDER]/x86/Debug/VoxelCraft.lib")
   #endif
 #endif
 ```
 
-replacing `[GAME SRC FOLDER]` with the full path of `src` folder (e.g. `C:/Dev/ClassiCube/src`)
+replacing `[GAME SRC FOLDER]` with the full path of `src` folder (e.g. `C:/Dev/VoxelCraft/src`)
 
 #### Configuration - alternative #2
 
@@ -179,7 +179,7 @@ TODO: may need to configure include directories
 
 1) In `Configuration properties` -> `General`, make sure `Configuration type` is set to `Dynamic library (.DLL)`
 
-2) In `Configuration properties` -> `Linker` -> `Input`, click the dropdown button for `Additional Dependencies`, then click `Edit`. Add the full path to `ClassiCube.lib`, then click `OK`
+2) In `Configuration properties` -> `Linker` -> `Input`, click the dropdown button for `Additional Dependencies`, then click `Edit`. Add the full path to `VoxelCraft.lib`, then click `OK`
 
 #### Compiling
 
@@ -194,33 +194,33 @@ Then put `TestPlugin.dll` into your game's `plugins` folder. Done.
 
 #### Setup
 
-1) Create `ClassiCube.exe` by either:
+1) Create `VoxelCraft.exe` by either:
     1) Compiling the game, see `Compiling for windows (MinGW-w64)` in [main readme](/readme.md#using-mingw-w64)
-    2) Downloading ClassiCube from https://www.classicube.net/download/#dl-win
-2) Generate the list of exported symbols in `ClassiCube.exe` by running:
-    * `gendef ClassiCube.exe`
+    2) Downloading VoxelCraft from https://www.classicube.net/download/#dl-win
+2) Generate the list of exported symbols in `VoxelCraft.exe` by running:
+    * `gendef VoxelCraft.exe`
 3) Create a linkable library from the exported symbols list by running: 
-    * `dlltool -d ClassiCube.def -l libClassiCube.a -D ClassiCube.exe`
+    * `dlltool -d VoxelCraft.def -l libVoxelCraft.a -D VoxelCraft.exe`
 
 #### Compiling
 
-`gcc TestPlugin.c -o TestPlugin.dll -s -shared -L . -lClassiCube`
+`gcc TestPlugin.c -o TestPlugin.dll -s -shared -L . -lVoxelCraft`
 
 Then put `TestPlugin.dll` into your game's `plugins` folder. Done.
 
 ## Notes for compiling for Windows
 
-### Ensuring your plugin works when the ClassiCube exe isn't named ClassiCube.exe
+### Ensuring your plugin works when the VoxelCraft exe isn't named VoxelCraft.exe
 
-If you follow the prior compilation instructions, the compiled DLL will have a runtime dependancy on `ClassiCube.exe`
+If you follow the prior compilation instructions, the compiled DLL will have a runtime dependancy on `VoxelCraft.exe`
 
-However, this means that if the executable is e.g. named `ClassiCube (2).exe` instead. the plugin DLL will fail to load
+However, this means that if the executable is e.g. named `VoxelCraft (2).exe` instead. the plugin DLL will fail to load
 
 To avoid this problem, you must 
-1) Stop linking to `ClassiCube` (e.g. for `MinGW`, remove the ` -L . -lClassiCube`)
-2) Load all functions and variables exported from ClassiCube via `GetProcAddress` instead
+1) Stop linking to `VoxelCraft` (e.g. for `MinGW`, remove the ` -L . -lVoxelCraft`)
+2) Load all functions and variables exported from VoxelCraft via `GetProcAddress` instead
 
-This is somewhat tedious to do - see [here](https://github.com/ClassiCube/ClassiCube-Plugins/) for some examples of plugins which do this
+This is somewhat tedious to do - see [here](https://github.com/VoxelCraft/VoxelCraft-Plugins/) for some examples of plugins which do this
 
 #### Compiling ultra small plugin DLLs - MinGW
 If you **ONLY** use code from the game (no external libraries and no C standard library functions):

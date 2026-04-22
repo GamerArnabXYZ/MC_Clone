@@ -1445,7 +1445,7 @@ static void SaveLevelScreen_UploadCallback(const cc_string* path) {
 
 static void SaveLevelScreen_File(void* screen, void* b) {
 	static const char* const titles[] = {
-		"ClassiCube map", "Minecraft schematic", "Minecraft classic map", NULL
+		"VoxelCraft map", "Minecraft schematic", "Minecraft classic map", NULL
 	};
 	static const char* const filters[] = {
 		".cw", ".schematic", ".mine", NULL

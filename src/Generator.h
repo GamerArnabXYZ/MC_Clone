@@ -5,9 +5,9 @@
 CC_BEGIN_HEADER
 
 /* Implements flatgrass map generator, and original classic vanilla map generation (with perlin noise)
-   Based on: https://github.com/ClassiCube/ClassiCube/wiki/Minecraft-Classic-map-generation-algorithm
+   Based on: https://github.com/VoxelCraft/VoxelCraft/wiki/Minecraft-Classic-map-generation-algorithm
    Thanks to Jerralish for originally reverse engineering classic's algorithm, then preparing a high level overview of the algorithm.
-   Copyright 2014-2025 ClassiCube | Licensed under BSD-3
+   Copyright 2014-2025 VoxelCraft | Licensed under BSD-3
 */
 
 /* Progress between 0 and 1 for the current step */

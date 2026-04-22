@@ -5,7 +5,7 @@ CC_BEGIN_HEADER
 
 /* 
 Logs warnings/errors and also abstracts platform specific logging for fatal errors
-Copyright 2014-2025 ClassiCube | Licensed under BSD-3
+Copyright 2014-2025 VoxelCraft | Licensed under BSD-3
 */
 struct cc_filepath_;
 

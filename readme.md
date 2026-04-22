@@ -1,12 +1,12 @@
-ClassiCube is a custom Minecraft Classic compatible client written in C from scratch.<br>
+VoxelCraft is a custom Minecraft Classic compatible client written in C from scratch.<br>
 > [!IMPORTANT]
-**ClassiCube is not affiliated with (or supported by) Mojang AB, Minecraft, or Microsoft in any way.** <br><br>
-**ClassiCube is not trying to replicate modern Minecraft.**<br>
+**VoxelCraft is not affiliated with (or supported by) Mojang AB, Minecraft, or Microsoft in any way.** <br><br>
+**VoxelCraft is not trying to replicate modern Minecraft.**<br>
 **It will never support survival, Minecraft accounts, or modern Minecraft servers.**
 
-# What ClassiCube is
+# What VoxelCraft is
 
-ClassiCube aims to replicate the 2009 Minecraft Classic client while offering **optional** enhancements to improve gameplay. ClassiCube can run on [many systems](#supported-systems), including desktop, web, mobile, and even some consoles.
+VoxelCraft aims to replicate the 2009 Minecraft Classic client while offering **optional** enhancements to improve gameplay. VoxelCraft can run on [many systems](#supported-systems), including desktop, web, mobile, and even some consoles.
 <details>
 <summary><b>Features (click to expand)</b></summary>
 
@@ -20,44 +20,44 @@ ClassiCube aims to replicate the 2009 Minecraft Classic client while offering **
 
 </details>
 
-You can **download ClassiCube** [here](https://www.classicube.net/download/) and the very latest builds [here](https://www.classicube.net/nightlies/).
+You can **download VoxelCraft** [here](https://www.classicube.net/download/) and the very latest builds [here](https://www.classicube.net/nightlies/).
 
-![classic](https://github.com/ClassiCube/ClassiCube/assets/6509348/eedee53f-f53e-456f-b51c-92c62079eee0)
+![classic](https://github.com/VoxelCraft/VoxelCraft/assets/6509348/eedee53f-f53e-456f-b51c-92c62079eee0)
 
-![enhanced](https://github.com/ClassiCube/ClassiCube/assets/6509348/b2fe0e2b-5d76-41ab-909f-048d0ad15f37)
+![enhanced](https://github.com/VoxelCraft/VoxelCraft/assets/6509348/b2fe0e2b-5d76-41ab-909f-048d0ad15f37)
 
 
 # We need your help
 
-ClassiCube strives to replicate the original Minecraft Classic experience by **strictly adhering to [clean room](https://en.wikipedia.org/wiki/Clean_room_design) reverse engineering approach**.
+VoxelCraft strives to replicate the original Minecraft Classic experience by **strictly adhering to [clean room](https://en.wikipedia.org/wiki/Clean_room_design) reverse engineering approach**.
 
-If you're interested in documenting or verifying the behaviour of the original Minecraft Classic, please get in contact on the [ClassiCube Discord](https://classicube.net/discord)
+If you're interested in documenting or verifying the behaviour of the original Minecraft Classic, please get in contact on the [VoxelCraft Discord](https://classicube.net/discord)
 
 
 # How to play
-Initially, you will need to run ClassiCube.exe to download the required assets from minecraft.net and classicube.net.<br>
+Initially, you will need to run VoxelCraft.exe to download the required assets from minecraft.net and classicube.net.<br>
 Just click 'OK' to the dialog menu that appears when you start the launcher.
 
 > **Note:** When running from within VirtualBox, disable Mouse Integration, otherwise the in-game camera won't work properly.
 
 **Singleplayer mode**
-Run ClassiCube.exe, then click Singleplayer at the main menu.
+Run VoxelCraft.exe, then click Singleplayer at the main menu.
 
 **Multiplayer mode**
-Run ClassiCube.exe. You can connect to LAN/locally hosted servers, and classicube.net servers if you have a [ClassiCube account](https://www.classicube.net/).
+Run VoxelCraft.exe. You can connect to LAN/locally hosted servers, and classicube.net servers if you have a [VoxelCraft account](https://www.classicube.net/).
 
 #### *Stuck on OpenGL 1.1?*
 The most common reason for being stuck on OpenGL 1.1 is non-working GPU drivers - so if possible, you should try either installing or updating the drivers for your GPU.
 
 Otherwise:
-* On Windows, you can still run the OpenGL build of ClassiCube anyways. <br> 
+* On Windows, you can still run the OpenGL build of VoxelCraft anyways. <br> 
 (You can try downloading and using the MESA software renderer from [here](http://download.qt.io/development_releases/prebuilt/llvmpipe/windows/) for slightly better performance though)
 * On other operating systems, you will have to [compile the game yourself](#Compiling). <br> 
 Don't forget to add `-DCC_BUILD_GL11` to the compilation command line so that the compiled game supports OpenGL 1.1.
 
 # Supported systems
 
-ClassiCube runs on:
+VoxelCraft runs on:
 * Windows - 95 and later
 * macOS - 10.5 or later (can be compiled for 10.3/10.4 though)
 * Linux - needs `libopenal`
@@ -71,7 +71,7 @@ And also runs on:
 * NetBSD - needs <code>libexecinfo</code> and <code>openal-soft</code> packages (can [download from here](https://www.classicube.net/download/#dl-nbsd))
 * OpenBSD - needs <code>libexecinfo</code> and <code>openal</code> packages
 * Solaris - needs <code>openal</code> packages
-* Haiku - needs <code>openal</code> package (if you have a GitHub account, can [download from here](https://github.com/ClassiCube/ClassiCube/actions/workflows/build_haiku.yml))
+* Haiku - needs <code>openal</code> package (if you have a GitHub account, can [download from here](https://github.com/VoxelCraft/VoxelCraft/actions/workflows/build_haiku.yml))
 * BeOS - untested on actual hardware
 * IRIX - needs <code>openal</code> packages
 * HPUX - tested on 11v3 IA64
@@ -97,27 +97,27 @@ And also runs on:
 
 # Compiling 
 
-*Note: The instructions below automatically compile ClassiCube with the recommended defaults for the platform. <br>
+*Note: The instructions below automatically compile VoxelCraft with the recommended defaults for the platform. <br>
 If you (not recommended) want to override the defaults (e.g. to compile OpenGL build on Windows), see [here](doc/overriding-defaults.md) for details.*
 
 ## Compiling - Windows
 
 ##### Using Visual Studio
-1. Open ClassiCube.sln *(File -> Open -> Project/Solution)*
+1. Open VoxelCraft.sln *(File -> Open -> Project/Solution)*
 2. Compile/Build it *(Build -> Build Solution)*.
 
 If you get a `The Windows SDK version 5.1 was not found` compilation error, [see here for how to fix](doc/compile-fixes.md#visual-studio-unsupported-platform-toolset)
 
 ##### Using Visual Studio (command line)
 1. Use 'Developer Tools for Visual Studio' from Start Menu
-2. Navigate to the directory with ClassiCube's source code
-3. Run `cl.exe src\*.c third_party\bearssl\*.c /link user32.lib gdi32.lib winmm.lib dbghelp.lib shell32.lib comdlg32.lib /out:ClassiCube.exe`
+2. Navigate to the directory with VoxelCraft's source code
+3. Run `cl.exe src\*.c third_party\bearssl\*.c /link user32.lib gdi32.lib winmm.lib dbghelp.lib shell32.lib comdlg32.lib /out:VoxelCraft.exe`
 
 ##### Using MinGW-w64
 Assuming that you used the installer from https://sourceforge.net/projects/mingw-w64/ :
 1. Install MinGW-W64
 2. Use either *Run Terminal* from Start Menu or run *mingw-w64.bat* in the installation folder
-3. Navigate to the directory with ClassiCube's source code
+3. Navigate to the directory with VoxelCraft's source code
 4. Run either:
     * `make mingw` - produces a simple non-optimised executable, easier to debug
     * `make mingw RELEASE=1` - produces an optimised executable, harder to debug
@@ -126,7 +126,7 @@ Assuming that you used the installer from https://sourceforge.net/projects/mingw
 Assuming that you used the installer from https://osdn.net/projects/mingw/ :
 1. Install MinGW. You need mingw32-base-bin and msys-base-bin packages.
 2. Run *msys.bat* in the *C:\MinGW\msys\1.0* folder.
-3. Navigate to the directory with ClassiCube's source code
+3. Navigate to the directory with VoxelCraft's source code
 4. Run either:
     * `make mingw` - produces a simple non-optimised executable, easier to debug
     * `make mingw RELEASE=1` - produces an optimised executable, harder to debug
@@ -138,8 +138,8 @@ Setting up TCC:
 3. Copy `winapi` folder and `_mingw_dxhelper.h` from `winapi-full-for-0.9.27.zip` into TCC's `include` folder
 
 Compiling with TCC:
-1. Navigate to the directory with ClassiCube's source code
-2. Run `tcc.exe -o ClassiCube.exe src/*.c third_party/bearssl/*.c -lwinmm -lgdi32 -luser32 -lcomdlg32 -lshell32`<br>
+1. Navigate to the directory with VoxelCraft's source code
+2. Run `tcc.exe -o VoxelCraft.exe src/*.c third_party/bearssl/*.c -lwinmm -lgdi32 -luser32 -lcomdlg32 -lshell32`<br>
 (Note: You may need to specify the full path to `tcc.exe` instead of just `tcc.exe`)
 
 ## Compiling - Linux
@@ -177,7 +177,7 @@ Although the regular linux compiliation flags will work fine, to take full advan
 
 ## Compiling - for Android
 
-NOTE: If you are distributing a modified version, **please change the package ID from `com.classicube.android.client` to something else** - otherwise Android users won't be able to have both ClassiCube and your modified version installed at the same time on their Android device
+NOTE: If you are distributing a modified version, **please change the package ID from `com.classicube.android.client` to something else** - otherwise Android users won't be able to have both VoxelCraft and your modified version installed at the same time on their Android device
 
 ##### Using Android Studio GUI
 
@@ -191,7 +191,7 @@ Run `gradlew` in `misc/android` folder (TODO explain more detailed)
 
 iOS version will have issues as it's incomplete and only tested in iOS Simulator
 
-NOTE: If you are distributing a modified version, **please change the bundle ID from `com.classicube.ios.client` to something else** - otherwise iOS users won't be able to have both ClassiCube and your modified version installed at the same time on their iOS device
+NOTE: If you are distributing a modified version, **please change the bundle ID from `com.classicube.ios.client` to something else** - otherwise iOS users won't be able to have both VoxelCraft and your modified version installed at the same time on their iOS device
 
 ##### Using Xcode GUI
 
@@ -216,7 +216,7 @@ For details on how to integrate the webclient into a website, see [here](doc/hos
 <details>
 <summary><h2>Compiling - consoles</h2></summary>
 
-All console ports need assistance from someone experienced with homebrew development - if you're interested, please get in contact on the [ClassiCube Discord.](https://classicube.net/discord)
+All console ports need assistance from someone experienced with homebrew development - if you're interested, please get in contact on the [VoxelCraft Discord.](https://classicube.net/discord)
 
 <details>
 <summary><h3>Nintendo consoles (click to expand)</h3></summary>
@@ -428,7 +428,7 @@ You'll have to write the necessary code. You should read `portability.md` in doc
 
 Functions and variables in .h files are mostly documented.
 
-Further information (e.g. style) for ClassiCube's source code can be found in the doc and misc folders.
+Further information (e.g. style) for VoxelCraft's source code can be found in the doc and misc folders.
 
 #### Known compilation errors
 
@@ -495,7 +495,7 @@ Further information (e.g. style) for ClassiCube's source code can be found in th
 </details>
 
 ## Sound Credits
-ClassiCube uses sounds from [Freesound.org](https://freesound.org)<br>
+VoxelCraft uses sounds from [Freesound.org](https://freesound.org)<br>
 Full credits are listed in [doc/sound-credits.md](doc/sound-credits.md)
 
 

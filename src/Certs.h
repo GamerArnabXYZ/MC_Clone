@@ -5,7 +5,7 @@ CC_BEGIN_HEADER
 
 /* 
 Validates an X509 certificate chain for verifying a SSL/TLS connection.
-Copyright 2014-2025 ClassiCube | Licensed under BSD-3
+Copyright 2014-2025 VoxelCraft | Licensed under BSD-3
 */
 
 void CertsBackend_Init(void);

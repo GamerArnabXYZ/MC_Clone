@@ -42,16 +42,13 @@ else
 endif
 
 default: android
-.PHONY: default web android release clean
+.PHONY: default web android clean
 
 web:
 	$(MAKE) $(TARGET) PLAT=web
 
 android:
 	cd misc/android && ./gradlew assembleDebug
-
-release:
-	$(MAKE) $(TARGET) RELEASE=1
 
 clean:
 	$(RM) $(OBJECTS)

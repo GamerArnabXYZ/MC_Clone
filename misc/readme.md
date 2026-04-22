@@ -1,4 +1,4 @@
-This folder contains additional files and resources for ClassiCube
+This folder contains additional files and resources for VoxelCraft
 
 ## Icons
 
@@ -16,4 +16,4 @@ TODO: Explain how to compile your own icon for all the platforms
 |macOS | Contains icons, Info.plist for generating macOS Application Bundle |
 |linux | Contains icons, script for generating a Desktop Entry |
 |xbox | Contains Xbox shaders |
-|build_scripts | Contains scripts for compiling plugins and optimised ClassiCube executables|
+|build_scripts | Contains scripts for compiling plugins and optimised VoxelCraft executables|

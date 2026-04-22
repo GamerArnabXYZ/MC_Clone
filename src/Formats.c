@@ -876,7 +876,7 @@ static void Cw_Callback(struct NbtTag* tag) {
 }
 
 /* Imports a world from a .cw ClassicWorld map file */
-/* Used by ClassiCube/ClassicalSharp */
+/* Used by VoxelCraft/ClassicalSharp */
 static cc_result Cw_Load(struct Stream* stream) {
 	return Nbt_Read(stream, Cw_Callback);
 }

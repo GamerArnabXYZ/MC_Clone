@@ -2,7 +2,7 @@
 #define CC_MAIN_H
 #include "String_.h"
 /* Utility constants and methods for command line arguments
-   Copyright 2014-2025 ClassiCube | Licensed under BSD-3
+   Copyright 2014-2025 VoxelCraft | Licensed under BSD-3
 */
 CC_BEGIN_HEADER
 
