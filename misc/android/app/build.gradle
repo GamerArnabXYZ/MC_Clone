@@ -35,13 +35,13 @@ android {
         }
     }
 
-    // Generate separate APK per ABI
+    // Generate separate APK per ABI + 1 Universal APK
     splits {
         abi {
             enable true
             reset()
             include 'arm64-v8a', 'armeabi-v7a', 'x86_64'
-            universalApk false
+            universalApk true
         }
     }
 

@@ -90,15 +90,17 @@ jobs:
         run: |
           # Find and rename signed APKs clearly
           for F in *-signed.apk; do
-            if echo "$F" | grep -q "arm64"; then
-              cp "$F" "app-arm64-v8a-release.apk"
-            elif echo "$F" | grep -q "armeabi\|arm32\|v7a"; then
-              cp "$F" "app-armeabi-v7a-release.apk"
+            if echo "$F" | grep -q "arm64-v8a"; then
+              mv "$F" "VoxelCraft-arm64-v8a.apk"
+            elif echo "$F" | grep -q "armeabi-v7a"; then
+              mv "$F" "VoxelCraft-armeabi-v7a.apk"
             elif echo "$F" | grep -q "x86_64"; then
-              cp "$F" "app-x86_64-release.apk"
+              mv "$F" "VoxelCraft-x86_64.apk"
+            elif echo "$F" | grep -q "universal"; then
+              mv "$F" "VoxelCraft-Universal.apk"
             fi
           done
-          ls -lh *.apk 2>/dev/null || ls -lh *-signed.apk
+          ls -lh *.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -106,18 +108,20 @@ jobs:
           tag_name: build-${{ github.run_number }}
           name: "VoxelCraft Build #${{ github.run_number }}"
           body: |
-            🤖 Auto build — commit `${{ github.sha }}`
+            🤖 Auto-Generated Pre-Release — commit `${{ github.sha }}`
 
-            | APK | Target |
-            |-----|--------|
-            | `app-arm64-v8a-release.apk` | Modern 64-bit (Android 5.0+) ✅ Recommended |
-            | `app-armeabi-v7a-release.apk` | Older 32-bit devices |
-            | `app-x86_64-release.apk` | x86_64 emulators / Chromebooks |
+            | APK | Platform | Description |
+            |-----|----------|-------------|
+            | `VoxelCraft-arm64-v8a.apk` | arm64-v8a | Recommended for modern 64-bit devices |
+            | `VoxelCraft-armeabi-v7a.apk` | armeabi-v7a | For older 32-bit devices |
+            | `VoxelCraft-x86_64.apk` | x86_64 | For emulators and some Chromebooks |
+            | `VoxelCraft-Universal.apk` | Multi-arch | Works on all supported devices (larger size) |
           prerelease: true
           files: |
-            app-arm64-v8a-release.apk
-            app-armeabi-v7a-release.apk
-            app-x86_64-release.apk
+            VoxelCraft-arm64-v8a.apk
+            VoxelCraft-armeabi-v7a.apk
+            VoxelCraft-x86_64.apk
+            VoxelCraft-Universal.apk
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
