@@ -410,9 +410,9 @@ char Drawer2D_LastColor(const cc_string* text, int start) {
 }
 cc_bool Drawer2D_IsWhiteColor(char c) { return c == '\0' || c == 'f' || c == 'F'; }
 
-/* TODO: Needs to account for DPI */
-#define Drawer2D_ShadowOffset(point) (point / 8)
-#define Drawer2D_XPadding(point) (Math_CeilDiv(point, 8))
+/* Scales shadow offset and padding to account for DPI */
+#define Drawer2D_ShadowOffset(point) (int)((point / 8) * DisplayInfo.ScaleX)
+#define Drawer2D_XPadding(point)     (int)(Math_CeilDiv(point, 8) * DisplayInfo.ScaleX)
 static int Drawer2D_Width(int point, char c) {
 	return Math_CeilDiv(tileWidths[(cc_uint8)c] * point, tileSize);
 }

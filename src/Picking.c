@@ -171,7 +171,7 @@ static cc_bool RayTrace(struct RayTracer* t, const Vec3* origin, const Vec3* dir
 	/*  this caused a bug when you were above the map (but still inside the map */
 	/*  horizontally) - if borders height was > map height, you would wrongly */
 	/*  pick blocks on the INSIDE of the map borders instead of OUTSIDE them */
-	insideMap = World_ContainsXZ(pOrigin.x, pOrigin.z) && pOrigin.y >= 0;
+	insideMap = World_ContainsXZ(pOrigin.x, pOrigin.z) && (pOrigin.y >= 0 && pOrigin.y < World.Height);
 	reachSq   = reach * reach;
 		
 	for (i = 0; i < 25000; i++) {

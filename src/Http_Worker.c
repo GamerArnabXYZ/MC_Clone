@@ -528,11 +528,15 @@ static cc_result HttpClient_Process(struct HttpClientState* state, char* buffer,
 			avail = state->dataLeft;
 			read  = min(left, avail);
 
-			/* TODO figure out why this bug happens */
-			if (!req->data) Process_Abort("Http state broken, please report this");
+			if (read > 0 && !req->data) {
+				/* TODO figure out why this bug happens occasionally */
+				Process_Abort("Http state broken: req->data is NULL but read > 0");
+			}
 
-			Mem_Copy(req->data + req->size, buffer + offset, read);
-			Http_BufferExpanded(req, read); 
+			if (read > 0) {
+				Mem_Copy(req->data + req->size, buffer + offset, read);
+				Http_BufferExpanded(req, read); 
+			}
 
 			state->dataLeft -= read;
 			offset += read;
