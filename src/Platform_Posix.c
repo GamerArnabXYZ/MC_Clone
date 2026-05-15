@@ -1566,16 +1566,24 @@ static cc_result GetMachineID(cc_uint32* key) { return ERR_NOT_SUPPORTED; }
 #endif
 
 cc_result Platform_GetEntropy(void* data, int len) {
-	int ret;
+	cc_uint8* ptr = (cc_uint8*)data;
+	int ret, read_len = 0;
 	int fd = open("/dev/urandom", O_RDONLY);
 	if (fd < 0) return ERR_NOT_SUPPORTED;
-	
-	// TODO: check return code? and partial reads?
-	ret = read(fd, data, len);
-	close(fd);
-	return ret == -1 ? errno : 0;
-}
 
+	while (read_len < len) {
+		ret = read(fd, ptr + read_len, len - read_len);
+		if (ret < 0) {
+			if (errno == EINTR) continue;
+			close(fd); return errno;
+		}
+		if (ret == 0) break;
+		read_len += ret;
+	}
+
+	close(fd);
+	return read_len == len ? 0 : ERR_END_OF_STREAM;
+}
 
 /*########################################################################################################################*
 *-----------------------------------------------------Configuration-------------------------------------------------------*
