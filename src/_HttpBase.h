@@ -148,7 +148,7 @@ static void Http_ParseCookie(struct HttpRequest* req, const cc_string* value) {
 	cc_string name, data;
 	int dataEnd;
 	String_UNSAFE_Separate(value, '=', &name, &data);
-	/* Cookie is: __cfduid=xyz; expires=abc; path=/; domain=.classicube.net; HttpOnly */
+	/* Cookie is: __cfduid=xyz; expires=abc; path=/; domain=.voxelcraft.net; HttpOnly */
 	/* However only the __cfduid=xyz part of the cookie should be stored */
 	dataEnd = String_IndexOf(&data, ';');
 	if (dataEnd >= 0) data.length = dataEnd;

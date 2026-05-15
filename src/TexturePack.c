@@ -505,7 +505,7 @@ cc_result TexturePack_ExtractDefault(DefaultZipCallback callback, const char** d
 
 	defaults[0] = Game_Version.DefaultTexpack;
 	defaults[1] = "texpacks/default.zip";
-	defaults[2] = "texpacks/classicube.zip";
+	defaults[2] = "texpacks/voxelcraft.zip";
 
 	for (i = 0; i < Array_Elems(defaults); i++) 
 	{

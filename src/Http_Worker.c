@@ -61,7 +61,7 @@ struct IGameComponent Http_Component = {
 /* Components of a URL */
 struct HttpUrl {
 	cc_bool https;      /* Whether HTTPS or just HTTP protocol */
-	cc_string address;  /* Address of server (e.g. "classicube.net:8080") */
+	cc_string address;  /* Address of server (e.g. "voxelcraft.net:8080") */
 	cc_string resource; /* Path being accessed (and query string) */
 	char _addressBuffer[STRING_SIZE + 8];
 	char _resourceBuffer[STRING_SIZE * 4];

@@ -190,7 +190,7 @@ cc_result SSL_Init(cc_socket socket, const cc_string* host_, void** out_ctx) {
 	ctx->xc.vtable = &cert_verifier_vtable;
 	
 	/* Account login must be done over TLS 1.2 */
-	if (String_CaselessEqualsConst(host_, "www.classicube.net")) {
+	if (String_CaselessEqualsConst(host_, "www.voxelcraft.net")) {
 		br_ssl_engine_set_versions(&ctx->sc.eng, BR_TLS12, BR_TLS12);
 	}
 	

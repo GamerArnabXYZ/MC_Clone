@@ -184,7 +184,7 @@ static void WriteString(cc_uint8* data, const cc_string* value) {
 }
 
 static void RemoveEndPlus(cc_string* value) {
-	/* Workaround for MCDzienny (and others) use a '+' at the end to distinguish classicube.net accounts */
+	/* Workaround for MCDzienny (and others) use a '+' at the end to distinguish voxelcraft.net accounts */
 	/* from minecraft.net accounts. Unfortunately they also send this ending + to the client. */
 	if (!value->length || value->buffer[value->length - 1] != '+') return;
 	value->length--;

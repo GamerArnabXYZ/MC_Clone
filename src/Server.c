@@ -538,11 +538,8 @@ static void OnInit(void) {
 	String_InitArray(Server.MOTD,    motdBuffer);
 	String_InitArray(Server.AppName, appBuffer);
 
-	if (!Server.Address.length) {
-		SPConnection_Init();
-	} else {
-		MPConnection_Init();
-	}
+	/* Always initialize singleplayer for this standalone version */
+	SPConnection_Init();
 
 	Game_Tasks.network.interval = GAME_NET_TICKS;
 	Game_Tasks.network.callback = Server.Tick;
