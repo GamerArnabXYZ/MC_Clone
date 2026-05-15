@@ -35,18 +35,27 @@ int Mem_Equal(const void* a, const void* b, cc_uint32 numBytes) {
 }
 
 #ifdef CC_BUILD_NOSTDLIB
-void* Mem_Set(void* dst, cc_uint8 value,  unsigned numBytes) {
-	char* dp = (char*)dst;
+void* Mem_Set(void* dst, cc_uint8 value, unsigned numBytes) {
+	cc_uint8* dp = (cc_uint8*)dst;
+	cc_uint32 v32 = value | (value << 8) | (value << 16) | (value << 24);
 
-	while (numBytes--) *dp++ = value; /* TODO optimise */
+	while (numBytes >= 4 && !((cc_uintptr)dp & 3)) {
+		*(cc_uint32*)dp = v32;
+		dp += 4; numBytes -= 4;
+	}
+	while (numBytes--) *dp++ = value;
 	return dst;
 }
 
 void* Mem_Copy(void* dst, const void* src, unsigned numBytes) {
-	char* sp = (char*)src;
-	char* dp = (char*)dst;
+	cc_uint8* sp = (cc_uint8*)src;
+	cc_uint8* dp = (cc_uint8*)dst;
 
-	while (numBytes--) *dp++ = *sp++; /* TODO optimise */
+	while (numBytes >= 4 && !((cc_uintptr)dp & 3) && !((cc_uintptr)sp & 3)) {
+		*(cc_uint32*)dp = *(cc_uint32*)sp;
+		dp += 4; sp += 4; numBytes -= 4;
+	}
+	while (numBytes--) *dp++ = *sp++;
 	return dst;
 }
 
