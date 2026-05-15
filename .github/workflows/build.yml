@@ -102,13 +102,15 @@ jobs:
           done
           ls -lh *.apk
 
-      - name: Create GitHub Release
+      - name: Update Latest Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
-          name: "VoxelCraft Build #${{ github.run_number }}"
+          tag_name: latest
+          name: "VoxelCraft - Latest Build"
           body: |
-            🤖 Auto-Generated Pre-Release — commit `${{ github.sha }}`
+            🤖 **Latest Auto-Generated Build**
+            _Last updated: ${{ github.event.head_commit.timestamp }}_
+            Commit: `${{ github.sha }}`
 
             | APK | Platform | Description |
             |-----|----------|-------------|
@@ -117,6 +119,7 @@ jobs:
             | `VoxelCraft-x86_64.apk` | x86_64 | For emulators and some Chromebooks |
             | `VoxelCraft-Universal.apk` | Multi-arch | Works on all supported devices (larger size) |
           prerelease: true
+          make_latest: true
           files: |
             VoxelCraft-arm64-v8a.apk
             VoxelCraft-armeabi-v7a.apk
