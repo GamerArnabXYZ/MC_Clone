@@ -425,12 +425,7 @@ static cc_bool MPConnection_Tick(struct ScheduledTask2* task) {
 		if (res == ReturnCode_SocketWouldBlock) res = 0;
 
 		if (res) { DisconnectReadFailed(res); return true; }
-	} else if (read == 0) {
-		/* recv only returns 0 read when socket is closed.. probably? */
-		/* Over 30 seconds since last packet, connection probably dropped */
-		/* TODO: Should this be checked unconditonally instead of just when read = 0 ? */
-		if (net_lastPacket + 30 < Game.Time) { MPConnection_Disconnect(); return true; }
-	} else {
+	} else if (read > 0) {
 		readCur        = net_readBuffer;
 		readEnd        = net_readCurrent + read;
 		net_lastPacket = Game.Time;
@@ -464,6 +459,11 @@ static cc_bool MPConnection_Tick(struct ScheduledTask2* task) {
 			net_readBuffer[i] = readCur[i];
 		}
 		net_readCurrent = net_readBuffer + remaining;
+	}
+
+	/* Over 30 seconds since last packet, connection probably dropped */
+	if (net_lastPacket + 30 < Game.Time) {
+		MPConnection_Disconnect(); return true;
 	}
 
 	if (net_writeFailure) {
