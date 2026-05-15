@@ -67,12 +67,12 @@ enum SKIN_TYPE { SKIN_64x32, SKIN_64x64, SKIN_64x64_SLIM, SKIN_INVALID = 0xF0 };
 #define Int32_MinValue  ((cc_int32)-2147483647L - (cc_int32)1L)
 #define Int32_MaxValue  ((cc_int32)2147483647L)
 
-#define SKINS_SERVER    "http://127.0.0.1/skins"
-#define UPDATES_SERVER  "http://127.0.0.1/updates"
-#define SERVICES_SERVER "http://127.0.0.1/api"
-#define RESOURCE_SERVER "http://127.0.0.1/resources"
+#define SKINS_SERVER    "https://null.voxelcraft.net/skins"
+#define UPDATES_SERVER  "https://null.voxelcraft.net/updates"
+#define SERVICES_SERVER "https://null.voxelcraft.net/api"
+#define RESOURCE_SERVER "https://null.voxelcraft.net/resources"
 /* Registration is disabled for this standalone version */
-#define REGISTERNEW_URL "http://127.0.0.1/"
+#define REGISTERNEW_URL "https://null.voxelcraft.net/"
 
 #define DEFAULT_USERNAME "Singleplayer"
 #endif
