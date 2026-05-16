@@ -87,8 +87,8 @@ static void HomeScreen_Init(void* screen) {
 static const struct ScreenVTABLE HomeScreen_VTABLE = {
 	HomeScreen_Init,    Screen_NullUpdate, Screen_NullFunc,
 	MenuScreen_Render2, Screen_BuildMesh,
-	Screen_InputDown,   Screen_InputUp,    Screen_NullFunc,  Screen_NullFunc,
-	Menu_PointerDown,   Screen_PointerUp,  Menu_PointerMove, Screen_NullFunc,
+	Menu_InputDown,     Screen_InputUp,    Screen_FKeyPress,  Screen_FText,
+	Menu_PointerDown,   Screen_PointerUp,  Menu_PointerMove,  Screen_FMouseScroll,
 	HomeScreen_Layout,  Screen_ContextLost, HomeScreen_ContextRecreated
 };
 
