@@ -15,6 +15,25 @@
 #include "Screens.h"
 
 /*########################################################################################################################*
+*-------------------------------------------------------MenuScreen--------------------------------------------------------*
+*#########################################################################################################################*/
+static void Menu_RenderBounds(void) {
+	Gfx_Draw2DFlat(0, 0, window_width, window_height, PackedCol_Make(0, 0, 0, 127));
+}
+
+void MenuScreen_Render2(void* screen, float delta) {
+	Menu_RenderBounds();
+	Screen_Render2Widgets(screen, delta);
+}
+
+int Menu_InputDown(void* screen, int key, struct InputDevice* device) {
+	return Screen_InputDown(screen, key, device);
+}
+
+static int Menu_PadAxis(void* screen, struct PadAxisUpdate* upd) { return 0; }
+
+
+/*########################################################################################################################*
 *-------------------------------------------------------HomeScreen--------------------------------------------------------*
 *#########################################################################################################################*/
 static struct HomeScreen {
@@ -84,15 +103,13 @@ static void HomeScreen_Init(void* screen) {
 	s->maxVertices = Screen_CalcDefaultMaxVertices(s);
 }
 
-static int HomeScreen_HandlesPadAxis(void* elem, struct PadAxisUpdate* upd) { return 0; }
-
 static const struct ScreenVTABLE HomeScreen_VTABLE = {
 	HomeScreen_Init,    Screen_NullUpdate, Screen_NullFunc,
 	MenuScreen_Render2, Screen_BuildMesh,
 	Menu_InputDown,     Screen_InputUp,    Screen_FKeyPress,  Screen_FText,
 	Menu_PointerDown,   Screen_PointerUp,  Menu_PointerMove,  Screen_FMouseScroll,
 	HomeScreen_Layout,  Screen_ContextLost, HomeScreen_ContextRecreated,
-	HomeScreen_HandlesPadAxis
+	Menu_PadAxis
 };
 
 void HomeScreen_Show(void) {
