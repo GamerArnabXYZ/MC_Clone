@@ -176,7 +176,6 @@ jobs:
           mkdir -p deploy/texpacks
           cp classisphere.js      deploy/
           cp index.html           deploy/
-          cp play.html            deploy/
           cp texpacks/default.zip deploy/texpacks/default.zip
           date -u --iso-8601=seconds | sed 's/+00:00/Z/' > deploy/update.txt
           echo "Deploy contents:"; ls -lh deploy/ deploy/texpacks/
