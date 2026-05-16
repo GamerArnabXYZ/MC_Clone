@@ -11,6 +11,8 @@
 #include "Server.h"
 #include "ExtMath.h"
 #include "Vectors.h"
+#include "Drawer2D.h"
+#include "Screens.h"
 
 /*########################################################################################################################*
 *-------------------------------------------------------HomeScreen--------------------------------------------------------*
@@ -20,9 +22,8 @@ static struct HomeScreen {
 	struct ButtonWidget btnPlay;
 	struct TextWidget   title;
 	struct TextWidget   lblUsername;
-	struct InputWidget  inputUsername;
+	struct TextInputWidget inputUsername;
 	struct Widget* _widgets[4];
-	char _nameBuffer[STRING_SIZE];
 } HomeScreen;
 
 static void HomeScreen_StartGame(void* screen, void* w) {
@@ -33,7 +34,7 @@ static void HomeScreen_StartGame(void* screen, void* w) {
 static void HomeScreen_OnNameChanged(void* elem) {
 	struct InputWidget* w = (struct InputWidget*)elem;
 	String_Copy(&Game_Username, &w->text);
-	Options_Set(OPT_USERNAME, &w->text);
+	Options_Set(LOPT_USERNAME, &w->text);
 }
 
 static void HomeScreen_ContextRecreated(void* screen) {
@@ -49,8 +50,7 @@ static void HomeScreen_ContextRecreated(void* screen) {
 	ButtonWidget_SetConst(&s->btnPlay,   "PLAY NOW",      &titleFont);
 
 	/* Setup input widget */
-	s->inputUsername.font = &textFont;
-	InputWidget_UpdateText(&s->inputUsername);
+	TextInputWidget_SetFont(&s->inputUsername, &textFont);
 
 	Font_Free(&titleFont);
 	Font_Free(&textFont);
@@ -66,22 +66,19 @@ static void HomeScreen_Layout(void* screen) {
 
 static void HomeScreen_Init(void* screen) {
 	struct HomeScreen* s = (struct HomeScreen*)screen;
+	struct MenuInputDesc desc;
 	s->widgets    = s->_widgets;
 	s->numWidgets = 0;
 	s->maxWidgets = Array_Elems(s->_widgets);
 
 	/* Initialize Input Widget */
-	InputWidget_Reset(&s->inputUsername);
-	String_InitArray(s->inputUsername.text, s->_nameBuffer);
-	String_Copy(&s->inputUsername.text, &Game_Username);
-	s->inputUsername.showCaret     = true;
-	s->inputUsername.padding       = 8;
-	s->inputUsername.OnTextChanged = HomeScreen_OnNameChanged;
-	s->inputUsername.VTABLE        = &InputWidget_VTABLE;
+	MenuInput_String(desc);
+	TextInputWidget_Create(&s->inputUsername, 300, &Game_Username, &desc);
+	s->inputUsername.base.OnTextChanged = HomeScreen_OnNameChanged;
 
 	TextWidget_Add(s,   &s->title);
 	TextWidget_Add(s,   &s->lblUsername);
-	InputWidget_Add(s,  &s->inputUsername, 300);
+	Widget_Add(s,       (struct Widget*)&s->inputUsername);
 	ButtonWidget_Add(s, &s->btnPlay, 240, HomeScreen_StartGame);
 
 	s->maxVertices = Screen_CalcDefaultMaxVertices(s);
@@ -90,8 +87,8 @@ static void HomeScreen_Init(void* screen) {
 static const struct ScreenVTABLE HomeScreen_VTABLE = {
 	HomeScreen_Init,    Screen_NullUpdate, Screen_NullFunc,
 	MenuScreen_Render2, Screen_BuildMesh,
-	Menu_InputDown,     Screen_InputUp,    Screen_TKeyPress, Screen_TText,
-	Menu_PointerDown,   Screen_PointerUp,  Menu_PointerMove, Screen_TMouseScroll,
+	Screen_InputDown,   Screen_InputUp,    Screen_NullFunc,  Screen_NullFunc,
+	Menu_PointerDown,   Screen_PointerUp,  Menu_PointerMove, Screen_NullFunc,
 	HomeScreen_Layout,  Screen_ContextLost, HomeScreen_ContextRecreated
 };
 
