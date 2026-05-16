@@ -5,156 +5,243 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#0a0a0a" />
-  <title>ClassiSphere</title>
+  <meta name="theme-color" content="#121212" />
+  <title>VoxelCraft</title>
+  
+  <!-- Legacy Compatible Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+
   <style>
-    /* Reset and Legacy Support */
+    :root {
+      --primary: #7c3aed;
+      --accent: #10b981;
+      --bg: #0a0a0a;
+    }
+
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     
     html, body {
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       background-color: #0a0a0a;
-      /* Legacy iOS/Android often need overflow:hidden on both */
       overflow: hidden;
       -webkit-user-select: none;
       user-select: none;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #fff;
     }
 
-    /* Cool Animated Background - Low CPU for older chips */
-    body {
+    /* --- UI States --- */
+    #landing-page, #loading-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
       display: -webkit-box;
-      display: -ms-flexbox;
+      display: -webkit-flex;
       display: flex;
+      -webkit-box-orient: vertical;
+      -webkit-box-direction: normal;
+      -webkit-flex-direction: column;
+      flex-direction: column;
       -webkit-box-align: center;
-      -ms-flex-align: center;
+      -webkit-align-items: center;
       align-items: center;
       -webkit-box-pack: center;
-      -ms-flex-pack: center;
+      -webkit-justify-content: center;
       justify-content: center;
-      background: radial-gradient(circle at center, #1a1025 0%, #0a0a0a 100%);
-      position: relative;
+      background: #0a0a0a;
+      z-index: 100;
+      -webkit-transition: opacity 0.5s ease;
+      transition: opacity 0.5s ease;
     }
 
-    /* Subtle grid pattern for that 'Sphere' feel */
-    body::before {
-      content: "";
+    #loading-overlay { 
+      background: rgba(10, 10, 10, 0.95);
+      z-index: 90; 
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .hidden { opacity: 0 !important; visibility: hidden !important; pointer-events: none; }
+
+    /* --- Background Animation (iOS 12 Friendly) --- */
+    .grid-overlay {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
-      background-image: radial-gradient(rgba(200, 160, 224, 0.05) 1px, transparent 1px);
-      background-size: 30px 30px;
+      background-image: -webkit-linear-gradient(right, rgba(124, 58, 237, 0.05) 1px, transparent 1px),
+                        -webkit-linear-gradient(bottom, rgba(124, 58, 237, 0.05) 1px, transparent 1px);
+      background-image: linear-gradient(to right, rgba(124, 58, 237, 0.05) 1px, transparent 1px),
+                        linear-gradient(to bottom, rgba(124, 58, 237, 0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+      -webkit-transform: rotateX(60deg) translateY(-200px);
+      transform: rotateX(60deg) translateY(-200px);
+      -webkit-animation: gridMove 20s linear infinite;
+      animation: gridMove 20s linear infinite;
       z-index: 0;
     }
 
-    .container { 
+    @-webkit-keyframes gridMove { from { background-position: 0 0; } to { background-position: 0 1000px; } }
+    @keyframes gridMove { from { background-position: 0 0; } to { background-position: 0 1000px; } }
+
+    /* --- Content Card --- */
+    .card {
       position: relative;
-      z-index: 1;
-      text-align: center; 
-      padding: 24px;
-      width: 100%;
+      z-index: 10;
+      padding: 2rem;
+      border-radius: 20px;
+      background: rgba(30, 30, 30, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
     }
 
-    /* Replaced clamp() with fallbacks for iOS 12/Android 6 */
     .title {
-      font-family: "Georgia", serif;
-      font-size: 32px; /* Fallback */
-      font-size: 7vw; 
-      font-weight: bold;
-      color: #c8a0e0;
-      letter-spacing: 2px;
-      text-shadow: 0 0 20px rgba(200,160,224,0.5);
-      margin-bottom: 4px;
-      /* Simple entrance animation */
-      -webkit-animation: fadeInDown 0.8s ease-out forwards;
-      animation: fadeInDown 0.8s ease-out forwards;
+      font-family: 'VT323', monospace;
+      font-size: 4rem;
+      color: #fff;
+      text-shadow: 0 0 15px rgba(124, 58, 237, 0.5);
+      margin-bottom: 10px;
     }
 
-    .sub {
-      font-size: 11px;
-      color: rgba(255,255,255,0.4);
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      margin-bottom: 40px;
-      -webkit-animation: fadeInUp 1s ease-out forwards;
-      animation: fadeInUp 1s ease-out forwards;
-    }
-
-    .play-btn {
-      display: inline-block;
-      padding: 16px 40px;
-      /* Using standard Hex for max compatibility, linear-gradient for modern */
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 18px;
       background: #7c3aed;
-      background: -webkit-linear-gradient(135deg, #7c3aed, #a855f7);
-      background: linear-gradient(135deg, #7c3aed, #a855f7);
-      color: #ffffff;
-      font-size: 16px;
-      font-weight: bold;
-      letter-spacing: 1px;
-      text-transform: uppercase;
+      color: #fff;
       text-decoration: none;
-      border-radius: 8px;
-      box-shadow: 0 4px 15px rgba(124,58,237,0.4);
+      font-weight: bold;
+      border-radius: 12px;
+      margin-top: 20px;
       -webkit-transition: -webkit-transform 0.2s;
       transition: transform 0.2s;
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* Pulse effect to make it 'cooler' */
-    .play-btn:active {
-      -webkit-transform: scale(0.95);
-      transform: scale(0.95);
+    .btn:active { -webkit-transform: scale(0.95); transform: scale(0.95); }
+
+    /* --- Loading Elements --- */
+    .progress-wrap {
+      width: 200px; height: 4px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      margin: 20px 0;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%; width: 0%;
+      background: #7c3aed;
+      -webkit-transition: width 0.3s ease;
+      transition: width 0.3s ease;
     }
 
-    .note { 
-      margin-top: 30px; 
-      font-size: 10px; 
-      color: rgba(255,255,255,0.25); 
-      letter-spacing: 1px;
-    }
-
-    /* Animations for that premium feel */
-    @-webkit-keyframes fadeInDown {
-      0% { opacity: 0; -webkit-transform: translateY(-20px); }
-      100% { opacity: 1; -webkit-transform: translateY(0); }
-    }
-    @keyframes fadeInDown {
-      0% { opacity: 0; transform: translateY(-20px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
-    @-webkit-keyframes fadeInUp {
-      0% { opacity: 0; -webkit-transform: translateY(10px); }
-      100% { opacity: 1; -webkit-transform: translateY(0); }
-    }
-    @keyframes fadeInUp {
-      0% { opacity: 0; transform: translateY(10px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Media query to cap title size on large screens */
-    @media (min-width: 600px) {
-      .title { font-size: 64px; }
+    #canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #000;
+      z-index: 5;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="title">ClassiSphere</div>
-    <div class="sub">Minecraft Classic</div>
-    <a href="play.html" class="play-btn" id="playBtn">Play Now</a>
-    <div class="note">Legacy Support Enabled</div>
+
+  <!-- 1. Landing Page -->
+  <div id="landing-page">
+    <div class="grid-overlay"></div>
+    <div class="card">
+      <h1 class="title">VoxelCraft</h1>
+      <p style="color:rgba(255,255,255,0.5); font-size: 14px;">Standalone Classic Experience</p>
+      <a href="#" class="btn" id="startBtn">START ENGINE</a>
+      <p style="margin-top: 20px; font-size: 10px; color:rgba(255,255,255,0.2);">Legacy Support v1.0</p>
+    </div>
   </div>
 
-  <script>
-    // Improved redirect with a check to prevent loops
-    // Redirects after 2 seconds to let the 'cool' animation breathe
-    setTimeout(function() {
-      try {
-        window.location.replace('play.html');
-      } catch(e) {
-        window.location.href = 'play.html';
+  <!-- 2. Loading Overlay (Triggered after Start) -->
+  <div id="loading-overlay" class="hidden">
+    <div style="font-family:'VT323'; font-size: 2rem;">INITIALIZING...</div>
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <div id="logmsg" style="font-size: 12px; color:rgba(255,255,255,0.5);">Preparing Assets...</div>
+  </div>
+
+  <!-- 3. Game Canvas -->
+  <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+
+  <script type="text/javascript">
+    var startBtn = document.getElementById('startBtn');
+    var landing  = document.getElementById('landing-page');
+    var overlay  = document.getElementById('loading-overlay');
+    var gameStarted = false;
+
+    function startGame() {
+      if (gameStarted) return;
+      gameStarted = true;
+      landing.className = 'hidden';
+      overlay.className = '';
+      
+      // Start loading the script
+      var script = document.createElement('script');
+      script.async = true;
+      script.src = "classisphere.js";
+      document.body.appendChild(script);
+    }
+
+    startBtn.onclick = function(e) {
+      e.preventDefault();
+      startGame();
+    };
+
+    // Auto-start after a short delay for better UX
+    setTimeout(startGame, 3000);
+
+    // --- Game Engine Glue Code ---
+    function logText(text) {
+      var el = document.getElementById('logmsg');
+      var bar = document.getElementById('progressBar');
+      if (!el) return;
+      if (!text || text === 'All downloads complete.') {
+        if (bar) bar.style.width = '100%';
+        setTimeout(function() { overlay.className = 'hidden'; }, 700);
+        return;
       }
-    }, 2000);
+      el.innerHTML = text;
+      var m = text.match(/(\d+)\/(\d+)/);
+      if (m && bar) {
+        bar.style.width = Math.round((parseInt(m[1]) / parseInt(m[2])) * 100) + '%';
+      }
+    }
+
+    function resizeCanvas() {
+      var c = document.getElementById('canvas');
+      var dpi = window.devicePixelRatio || 1;
+      c.width = window.innerWidth * dpi;
+      c.height = window.innerHeight * dpi;
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    var Module = {
+      preRun: [ resizeCanvas ],
+      postRun: [],
+      arguments: ['Singleplayer'],
+      print: function(text) { console.log(text); },
+      printErr: function(text) { console.error(text); },
+      canvas: (function() { return document.getElementById('canvas'); })(),
+      setStatus: logText,
+      monitorRunDependencies: function(left) {
+        this.totalDependencies = Math.max(this.totalDependencies || 0, left);
+        Module.setStatus(left ? 'Downloading... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+      }
+    };
+
+    // Audio Unlock for iOS
+    window.addEventListener('touchstart', function() {
+        if (typeof SDL2 !== 'undefined' && SDL2.audioContext && SDL2.audioContext.state === 'suspended') {
+            SDL2.audioContext.resume();
+        }
+    }, { once: true });
   </script>
 </body>
 </html>
