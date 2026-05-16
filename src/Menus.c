@@ -84,12 +84,15 @@ static void HomeScreen_Init(void* screen) {
 	s->maxVertices = Screen_CalcDefaultMaxVertices(s);
 }
 
+static int HomeScreen_HandlesPadAxis(void* elem, struct PadAxisUpdate* upd) { return 0; }
+
 static const struct ScreenVTABLE HomeScreen_VTABLE = {
 	HomeScreen_Init,    Screen_NullUpdate, Screen_NullFunc,
 	MenuScreen_Render2, Screen_BuildMesh,
 	Menu_InputDown,     Screen_InputUp,    Screen_FKeyPress,  Screen_FText,
 	Menu_PointerDown,   Screen_PointerUp,  Menu_PointerMove,  Screen_FMouseScroll,
-	HomeScreen_Layout,  Screen_ContextLost, HomeScreen_ContextRecreated
+	HomeScreen_Layout,  Screen_ContextLost, HomeScreen_ContextRecreated,
+	HomeScreen_HandlesPadAxis
 };
 
 void HomeScreen_Show(void) {
